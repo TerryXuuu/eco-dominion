@@ -1,0 +1,7 @@
+{
+  "reason_and_next_action": "Computer shutdown requested; resume S01 from the preserved foundation. Still needed: decisions/OWNER_RULES_APPROVAL.md citing R01-R26 and any exceptions, plus a gitignored .env with DATABASE_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET (32+ characters) and NEXT_PUBLIC_APP_URL.",
+  "session": "S01",
+  "checkpoint": "c3c6ada4ecbeb888b4a34d5487195af513f857b5",
+  "git_changes": " M .gitignore\n M SESSION_STATE.md\n M STATUS.md\n M TASKS.md\n M decisions/DECISIONS.md\n M logs/CO_BUILD_LOG.md\n M orchestration/state.json\n M package.json\n?? app/\n?? evidence/S01/20261011T095501107722Z.pause.json\n?? evidence/S01/local-foundation-observation.log\n?? lib/\n?? next-env.d.ts\n?? next.config.ts\n?? orchestration/clock.json\n?? package-lock.json\n?? proxy.ts\n?? tests/session-S01.test.mjs\n?? tools/apply-schema.mjs\n?? tsconfig.json\n",
+  "time": 1791714169.4655604
+}

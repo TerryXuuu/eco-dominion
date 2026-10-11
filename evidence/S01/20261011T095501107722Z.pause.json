@@ -1,0 +1,7 @@
+{
+  "reason_and_next_action": "'gbk' codec can't decode byte 0x94 in position 8: illegal multibyte sequence; inspect existing evidence and resolve before resume.",
+  "session": "S01",
+  "checkpoint": "c3c6ada4ecbeb888b4a34d5487195af513f857b5",
+  "git_changes": " M SESSION_STATE.md\n M STATUS.md\n M TASKS.md\n M orchestration/state.json\n?? orchestration/clock.json\n",
+  "time": 1791712501.1078517
+}

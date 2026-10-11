@@ -1,0 +1,27 @@
+Observed 2026-10-11 on the local production server at http://localhost:3000 before Neon credentials or owner rule approval existed.
+
+node --test tests/session-S01.test.mjs
+pass: draft rulings and the 36-card baseline stay unapproved
+pass: engine hides hands and follows the corrected energy and final-turn rulings
+pass: schema maps two users and refuses private or cross-account changes
+The schema test applied db/001_initial.sql to embedded Postgres. It did not connect to Neon.
+
+npx tsc --noEmit: exit 0
+npx next build: exit 0 (Next.js 16.4.0)
+
+Browser:
+GET / rendered the draft ruleset notice.
+GET /register rendered the registration form. Submitting without a password focused the required password field and did not create an account.
+GET /profile redirected to /login.
+GET /recover rendered the recovery form and stated that Neon Auth sends the message.
+GET /rules showed "Owner approval is not recorded", the R22 corrected energy line (4 energy + 1 reserve, deer leaves 2 and 1, fortify ends at 0 and 0), and the R01 final-turn scoring text.
+
+curl.exe -D - http://localhost:3000/api/profile
+HTTP/1.1 401 Unauthorized
+cache-control: private, no-store
+
+curl.exe -D - http://localhost:3000/api/players/ada
+HTTP/1.1 404 Not Found
+cache-control: private, no-store
+
+Not observed: two Neon Auth registrations, login, logout, recovery email, profile isolation in two browsers, or schema application against DATABASE_URL.
