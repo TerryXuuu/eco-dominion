@@ -1,0 +1,35 @@
+{
+  "architecture_version": "2.3",
+  "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
+  "active": "S01",
+  "sessions": {
+    "S01": {
+      "status": "active",
+      "implementation_commit": null,
+      "checkpoint": null,
+      "blocker": null,
+      "next_action": "Start via KICKOFF.md; controller discovers active prompt and creates the checkpoint."
+    },
+    "S02": {
+      "status": "pending",
+      "implementation_commit": null,
+      "checkpoint": null,
+      "blocker": null,
+      "next_action": null
+    },
+    "S03": {
+      "status": "pending",
+      "implementation_commit": null,
+      "checkpoint": null,
+      "blocker": null,
+      "next_action": null
+    },
+    "S04": {
+      "status": "pending",
+      "implementation_commit": null,
+      "checkpoint": null,
+      "blocker": null,
+      "next_action": null
+    }
+  }
+}

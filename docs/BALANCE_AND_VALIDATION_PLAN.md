@@ -1,0 +1,3 @@
+# Validation and balance
+
+Keep reference engine regressions and seeded invariants. Add tests against real Neon transactions for duplicate/concurrent commands, stale versions, seat privacy, queue admission and exactly-once results. Run independent-browser account/PvP/community journeys. S04 requires typecheck, tests and local production build. Record actual logs and failures; do not report a reference harness as a production test. Existing naive simulations are smoke evidence only, not proof of balance. Large-scale load and extended balance studies are outside this 16-hour implementation; public scale remains unqualified.

@@ -1,0 +1,151 @@
+{
+  "architecture_version": "2.3",
+  "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
+  "sessions": [
+    {
+      "id": "S01",
+      "title": "Accounts, rules and application foundation",
+      "hours": 4,
+      "prompt": "prompts/S01.md",
+      "requires": [],
+      "test": [
+        "node",
+        "--test",
+        "tests/session-S01.test.mjs"
+      ],
+      "acceptance": "Owner approval recorded; two users register/login with separate protected profiles; unauthorized access denied; schema integration and application build pass.",
+      "manual": "Use two accounts; verify logout, recovery and profile isolation; review the corrected energy example and final-turn ruling.",
+      "files": [
+        "app/",
+        "lib/auth.ts",
+        "lib/db.ts",
+        "db/001_initial.sql",
+        "decisions/OWNER_RULES_APPROVAL.md",
+        "tests/session-S01.test.mjs"
+      ],
+      "checks": [
+        [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        [
+          "npm",
+          "run",
+          "build"
+        ]
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Playable online PvP",
+      "hours": 4,
+      "prompt": "prompts/S02.md",
+      "requires": [
+        "S01"
+      ],
+      "test": [
+        "node",
+        "--test",
+        "tests/session-S02.test.mjs"
+      ],
+      "acceptance": "Two authenticated browsers finish a complete persisted match; duplicate commands apply once; stale commands rejected; hidden information protected; reconnect restores correct state; result/rating applied once.",
+      "manual": "Complete a match in two browsers; reconnect one; send concurrent duplicate and stale requests; inspect both network views for leaked secrets.",
+      "files": [
+        "app/api/matches/",
+        "app/play/",
+        "lib/game-service.ts",
+        "src/engine.mjs",
+        "lib/rating.ts",
+        "tests/session-S02.test.mjs"
+      ],
+      "checks": [
+        [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        [
+          "npm",
+          "run",
+          "build"
+        ]
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Community and user management",
+      "hours": 4,
+      "prompt": "prompts/S03.md",
+      "requires": [
+        "S02"
+      ],
+      "test": [
+        "node",
+        "--test",
+        "tests/session-S03.test.mjs"
+      ],
+      "acceptance": "Users interact through persistent feed and relationships; blocks/visibility respected; reports reach moderators; only authorized moderators can act; suspended users cannot mutate the platform.",
+      "manual": "Create/comment/like with two users, then block; attempt cross-user edits and ordinary-user moderation; resolve a report and inspect the audit trail.",
+      "files": [
+        "app/community/",
+        "app/profile/",
+        "app/moderation/",
+        "app/api/community/",
+        "lib/permissions.ts",
+        "tests/session-S03.test.mjs"
+      ],
+      "checks": [
+        [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        [
+          "npm",
+          "run",
+          "build"
+        ]
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Integrated validation, fixes and handoff",
+      "hours": 4,
+      "prompt": "prompts/S04.md",
+      "requires": [
+        "S03"
+      ],
+      "test": [
+        "node",
+        "--test",
+        "tests/session-S04.test.mjs"
+      ],
+      "acceptance": "Local integrated platform passes observed core journeys, engine tests, integration tests, typecheck and production build; any unresolved critical issue blocks acceptance; source and ledgers are committed with no claimed deployment.",
+      "manual": "Repeat one complete journey with two independent browsers; confirm blocked/suspended permissions, replay, reconnect and responsive controls.",
+      "files": [
+        "tests/",
+        "app/",
+        "README.md",
+        "evidence/S04/",
+        "docs/KNOWN_LIMITATIONS.md",
+        "tests/session-S04.test.mjs"
+      ],
+      "checks": [
+        [
+          "npm",
+          "run",
+          "typecheck"
+        ],
+        [
+          "npm",
+          "run",
+          "build"
+        ]
+      ]
+    }
+  ],
+  "default_mode": "automatic",
+  "automatic_entry": "AUTOMATIC_WORKFLOW.md",
+  "kickoff_entry": "KICKOFF.md"
+}

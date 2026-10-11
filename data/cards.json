@@ -1,0 +1,351 @@
+[
+  {
+    "id": "mouse",
+    "name": "草地啮鼠",
+    "kind": "species",
+    "cost": 1,
+    "regions": [
+      "forest",
+      "wild"
+    ],
+    "power": 3,
+    "copies": 3,
+    "effect": "Enter reserve +1; same-owner deer in region adds +2 power."
+  },
+  {
+    "id": "beetle",
+    "name": "苔藓甲虫",
+    "kind": "species",
+    "cost": 1,
+    "regions": [
+      "forest",
+      "water",
+      "wild",
+      "domain"
+    ],
+    "power": 2,
+    "copies": 3,
+    "effect": "Enter stability +1; same-owner ray adds +2 power."
+  },
+  {
+    "id": "deer",
+    "name": "林冠雄鹿",
+    "kind": "species",
+    "cost": 2,
+    "regions": [
+      "forest"
+    ],
+    "power": 6,
+    "copies": 3,
+    "effect": "Continuous forest stability +2 per deer; mouse adds +4 power."
+  },
+  {
+    "id": "fox",
+    "name": "灌丛狐",
+    "kind": "species",
+    "cost": 2,
+    "regions": [
+      "forest",
+      "wild"
+    ],
+    "power": 5,
+    "copies": 3,
+    "effect": "Enter draw 1; lizard adds +3 power."
+  },
+  {
+    "id": "lizard",
+    "name": "岩地蜥蜴",
+    "kind": "species",
+    "cost": 2,
+    "regions": [
+      "wild"
+    ],
+    "power": 4,
+    "copies": 3,
+    "effect": "Enter draw 1; fox provides continuous wild stability +3 per lizard."
+  },
+  {
+    "id": "beaver",
+    "name": "河狸工程师",
+    "kind": "species",
+    "cost": 3,
+    "regions": [
+      "water"
+    ],
+    "power": 6,
+    "copies": 3,
+    "effect": "Enter stability +3; controlling water grants reserve +1 on own refresh, once per beaver."
+  },
+  {
+    "id": "heron",
+    "name": "苍鹭",
+    "kind": "species",
+    "cost": 3,
+    "regions": [
+      "water",
+      "forest"
+    ],
+    "power": 7,
+    "copies": 3,
+    "effect": "Enter draw 1; beaver adds +3 power."
+  },
+  {
+    "id": "snake",
+    "name": "潮汐巨蛇",
+    "kind": "species",
+    "cost": 4,
+    "regions": [
+      "water"
+    ],
+    "power": 12,
+    "copies": 3,
+    "effect": "Enter stability +4; ray grants one interference immunity per snake per personal turn."
+  },
+  {
+    "id": "ray",
+    "name": "礁蝠鳐",
+    "kind": "species",
+    "cost": 4,
+    "regions": [
+      "water"
+    ],
+    "power": 10,
+    "copies": 3,
+    "effect": "Enter draw 1; snake adds +5 power."
+  },
+  {
+    "id": "bison",
+    "name": "荒野野牛",
+    "kind": "species",
+    "cost": 4,
+    "regions": [
+      "wild"
+    ],
+    "power": 11,
+    "copies": 3,
+    "effect": "Enter enemy-controlled target stability -2; power +2 per other friendly wild species in region."
+  },
+  {
+    "id": "falcon",
+    "name": "高地巨隼",
+    "kind": "species",
+    "cost": 5,
+    "regions": [
+      "forest",
+      "domain"
+    ],
+    "power": 14,
+    "copies": 3,
+    "effect": "Enter reserve +2; continuous +2 power to all friendly species here including self."
+  },
+  {
+    "id": "panther",
+    "name": "峡谷豹",
+    "kind": "species",
+    "cost": 5,
+    "regions": [
+      "wild"
+    ],
+    "power": 13,
+    "copies": 3,
+    "effect": "Enter enemy species here power -3 this turn; bison adds +4 power."
+  },
+  {
+    "id": "oak",
+    "name": "远古橡树",
+    "kind": "species",
+    "cost": 6,
+    "regions": [
+      "forest"
+    ],
+    "power": 12,
+    "copies": 3,
+    "effect": "Enter stability +6; continuous +2 power to friendly forest-capable species here including self."
+  },
+  {
+    "id": "guardian",
+    "name": "原初守望者",
+    "kind": "species",
+    "cost": 8,
+    "regions": [
+      "forest",
+      "water",
+      "wild",
+      "domain"
+    ],
+    "power": 20,
+    "copies": 1,
+    "effect": "Enter draw 2; continuous +3 power to friendly species here including self; max one on own board."
+  },
+  {
+    "id": "algae",
+    "name": "深渊母藻",
+    "kind": "species",
+    "cost": 8,
+    "regions": [
+      "water",
+      "wild"
+    ],
+    "power": 18,
+    "copies": 1,
+    "effect": "Enter target stability +6; stability >=10 gives friendly species here +4 power including self."
+  },
+  {
+    "id": "fortify",
+    "name": "领域稳固",
+    "kind": "tactic",
+    "cost": 3,
+    "copies": 3,
+    "effect": "Own controlled region stability +5."
+  },
+  {
+    "id": "bloom",
+    "name": "生物爆发",
+    "kind": "tactic",
+    "cost": 4,
+    "copies": 3,
+    "effect": "Friendly species in target region +4 power this turn."
+  },
+  {
+    "id": "migrate",
+    "name": "区域迁移",
+    "kind": "tactic",
+    "cost": 2,
+    "copies": 3,
+    "effect": "Move one friendly species to a different permitted region then draw 1; no enter retrigger."
+  },
+  {
+    "id": "charge",
+    "name": "储备蓄能",
+    "kind": "tactic",
+    "cost": 1,
+    "copies": 3,
+    "effect": "Reserve +2 capped 3."
+  },
+  {
+    "id": "infuse",
+    "name": "生态灌注",
+    "kind": "tactic",
+    "cost": 3,
+    "copies": 3,
+    "effect": "Own controlled region stability +2 and friendly species +3 power this turn."
+  },
+  {
+    "id": "reinforce",
+    "name": "增援召唤",
+    "kind": "tactic",
+    "cost": 2,
+    "copies": 3,
+    "effect": "Draw 2."
+  },
+  {
+    "id": "erode",
+    "name": "侵蚀",
+    "kind": "interference",
+    "cost": 3,
+    "copies": 3,
+    "effect": "Enemy controlled region stability -6."
+  },
+  {
+    "id": "break",
+    "name": "联动断裂",
+    "kind": "interference",
+    "cost": 4,
+    "copies": 3,
+    "effect": "Disable all enemy synergies in target region this turn; requires active enemy synergy."
+  },
+  {
+    "id": "veil",
+    "name": "污化帷幕",
+    "kind": "interference",
+    "cost": 5,
+    "copies": 3,
+    "effect": "Enemy occupied region species -5 power this turn."
+  },
+  {
+    "id": "steal",
+    "name": "资源掠夺",
+    "kind": "interference",
+    "cost": 3,
+    "copies": 3,
+    "effect": "Enemy reserve -2; if initially zero randomly discard one enemy hand card."
+  },
+  {
+    "id": "destroy",
+    "name": "地形破坏",
+    "kind": "interference",
+    "cost": 4,
+    "copies": 3,
+    "effect": "Any region stability -4; enemy gains no reserve from this region on their next settlement."
+  },
+  {
+    "id": "heat",
+    "name": "热浪",
+    "kind": "event",
+    "copies": 2,
+    "effect": "All species cost <=3 power -3 this turn."
+  },
+  {
+    "id": "monsoon",
+    "name": "季风狂潮",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Water stability +7; others -3."
+  },
+  {
+    "id": "rest",
+    "name": "静息盛放",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Each player chooses one own controlled region stability +2, or skips if none."
+  },
+  {
+    "id": "quake",
+    "name": "地壳震颤",
+    "kind": "event",
+    "copies": 2,
+    "effect": "All stability -3."
+  },
+  {
+    "id": "migration",
+    "name": "迁徙潮",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Each player may move one own species to a legal different region without enter/draw."
+  },
+  {
+    "id": "revival",
+    "name": "生态复兴",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Both reserve +1 capped 3."
+  },
+  {
+    "id": "drought",
+    "name": "干旱期",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Water stability -5."
+  },
+  {
+    "id": "storm",
+    "name": "风暴过境",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Both draw 1."
+  },
+  {
+    "id": "invasion",
+    "name": "物种入侵",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Active player selects region; side with more species gets +4 aggregate power this turn; tie no bonus."
+  },
+  {
+    "id": "balance",
+    "name": "自然平衡",
+    "kind": "event",
+    "copies": 2,
+    "effect": "Base stability reset so effective stability becomes 0 in regions currently <=0."
+  }
+]
