@@ -1,0 +1,52 @@
+S02 browser observation, 13 October 2026 (UTC). Production build (`next start`, port 3000) against real Neon Auth and the Neon database.
+No passwords are recorded here. Accounts: Ada Forest (@s01ada, seat 0) and Bea Meadow (@s01bea, seat 1), both created in S01.
+
+Browsers
+- Ada: the Cursor IDE browser tab, signed in at localhost:3000.
+- Bea: a separate headless Chrome with its own temporary profile, driven over DevTools by tools/s02-second-browser.mjs
+  (log: second-browser.log, final screenshot: second-browser-final.png, captured match API responses: second-browser-network.jsonl).
+  Neon Auth refused sign-in from the origin 127.0.0.1, so both browsers used localhost.
+- Moves were made by clicking the real UI controls from small in-page scripts (resolve the pending choice, try one species per turn,
+  otherwise end deployment and end the turn). The play strategy was scripted; every command went through the browser UI and API.
+
+1. Matchmaking and admission
+- Ada entered the casual queue from /play; Bea entered from her browser. Both pages were redirected into the same match
+  30232111-6158-45c0-ba44-55c1bd353ced (second-browser.log 11:51:58, match-id.txt).
+
+2. Concurrent duplicate and stale commands (from Ada's tab, against Neon)
+- Five simultaneous POSTs with the same commandId and body: exactly one reply had duplicate:false; the other four returned the same
+  receipt with duplicate:true. The match version moved 3 -> 4 once.
+- Three POSTs with a stale expectedVersion each returned 409 with the current version 4.
+
+3. Reconnect
+- Ada's tab was reloaded mid-match: version, her hand and the deadline (11:53:35.640Z) were identical before and after.
+  Mid-match board screenshot: ada-board-midmatch.png.
+
+4. Complete persisted match
+- Play continued in both browsers until the engine finished the game at version 59 (59 accepted commands, none automatic).
+- Bea's page: "You won on final score (18-0) · casual rating 1000 -> 1016" (second-browser.log 11:57:03).
+- Ada's page after reload: "Bea Meadow won on final score (0-18) · casual rating 1000 -> 984" (ada-match-finished.png).
+- /history for Ada: "Loss vs s01bea · Casual · final score 0-18 · Rating 1000 -> 984 · 2026-10-13 11:57 UTC · Replay".
+- /leaderboard: 1. Bea Meadow (@s01bea) 1016, 1 game; 2. Hidden player 984, 1 game (Ada's profile is not public) (leaderboard.png).
+  Each rating changed once and the games count is 1 for each player.
+- Replay from Ada's seat: opens at "Step 0 of 59"; End shows "Step 59 of 59 · You: pass · Bea Meadow won on final score (0-18)",
+  with the same board as the live finished view (ada-replay-final-step.png).
+
+5. Hidden information in both network views
+- Bea: 40 match API responses captured from her browser (9 full views, 8 command replies, 22 unchanged polls, 1 stale-version 409).
+- Ada: her live finished view and the replay at step 30 (mid-match, Bea holding 6 cards), fetched from her tab
+  (ada-browser-network.jsonl). The public `moves` list (step, seat and command type) was trimmed from the replay body, and the
+  step-59 replay was not kept because its game is identical to the live view.
+- tools/s02-leak-check.mjs rebuilt every authoritative state from the stored seed and commands (rebuilt version 59 = stored 59) and
+  checked each response against the true state at its version: no opponent hand cards, no deck cards, no seed, rng, deck,
+  eventDeck, private_snapshot or accepted keys, and the player's own hand equal to the truth. Result: pass (leak-check.log).
+
+Defects found during observation and fixed
+- The Cursor tab stopped polling after it was briefly treated as hidden: the poller returned without rescheduling and waited for a
+  visibilitychange event that the embedded view never sent. Hidden tabs now keep a slow check without making requests.
+- Neon Auth was intermittently unreachable (5 of 6 rapid requests from Ada's tab got 401 while she was signed in). The session lookup
+  now retries, and an unreachable provider returns 503 instead of 401, so the match page shows "Connection lost; reconnecting…"
+  and command retries keep the same commandId. After the rebuild Ada's match, replay, history and leaderboard pages loaded normally.
+
+Not observed: a private-room match between the two browsers (covered by tests/session-S02.test.mjs), and a timeout forfeit in a
+browser (covered by the R26 test). No deployment.

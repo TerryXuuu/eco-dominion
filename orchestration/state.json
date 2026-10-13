@@ -36,9 +36,9 @@
     "S02": {
       "status": "active",
       "implementation_commit": null,
-      "checkpoint": null,
+      "checkpoint": "258b83a04e6af8dd9e32ec32f77b871af4e86225",
       "blocker": null,
-      "next_action": "Read active prompt and create pre-session checkpoint."
+      "next_action": "Implement S02 prompt; commit checkpoint metadata with implementation."
     },
     "S03": {
       "status": "pending",

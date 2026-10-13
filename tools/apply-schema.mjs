@@ -12,6 +12,7 @@ if (!databaseUrl) {
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const schema = read('db/001_initial.sql');
+const playSchema = read('db/002_play.sql');
 const audit = read('docs/RULES_AUDIT_AND_DIGITAL_RULINGS.md');
 const approval = read('decisions/OWNER_RULES_APPROVAL.md');
 const cards = JSON.parse(read('data/cards.json'));
@@ -46,6 +47,9 @@ try {
   const existing = await client.query(`SELECT to_regclass('public.app_user') IS NOT NULL AS present`);
   const applied = !existing.rows[0].present;
   if (applied) await client.query(schema);
+  const playExisting = await client.query(`SELECT to_regclass('public.room') IS NOT NULL AS present`);
+  const playApplied = !playExisting.rows[0].present;
+  if (playApplied) await client.query(playSchema);
   await client.query('BEGIN');
   await client.query(
     `INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at)
@@ -59,7 +63,7 @@ try {
   }
   await client.query('COMMIT');
   const tables = await client.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema = 'public'`);
-  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
+  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', playSchemaApplied: playApplied ? 'db/002_play.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
   throw error;

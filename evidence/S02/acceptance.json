@@ -1,0 +1,49 @@
+{
+  "session": "S02",
+  "architecture_version": "2.3",
+  "summary": "Online PvP on the unmodified reference engine with all authority in Neon: private rooms and a casual queue with transactional admission, authenticated read/command/replay/history/leaderboard routes, seat-safe projections, a full-card board UI with every mandatory choice, version polling, idempotent commands, persisted R26 deadlines (owner-approved algorithm), reconnect, concede, one result per match and casual-only Elo (owner decision; ranked stays disabled). Two real browsers finished a persisted casual match (version 59; Bea won 18-0; ratings 1000->1016 and 1000->984 applied once); duplicates applied once, stale commands got 409, reload restored state, and a leak check against states rebuilt from Neon found no hidden information in either browser's responses. Two defects found in observation were fixed: a poller that stopped in embedded tabs, and 401 instead of 503 when Neon Auth is unreachable.",
+  "changed_files": [
+    "app/api/history/",
+    "app/api/leaderboard/",
+    "app/api/matches/",
+    "app/api/queue/",
+    "app/api/rooms/",
+    "app/components/call-api.ts",
+    "app/components/site-header.tsx",
+    "app/globals.css",
+    "app/history/",
+    "app/leaderboard/",
+    "app/matches/",
+    "app/play/",
+    "db/002_play.sql",
+    "lib/api.ts",
+    "lib/cards.ts",
+    "lib/engine.ts",
+    "lib/match-rules.ts",
+    "lib/match-service.ts",
+    "lib/page-actor.ts",
+    "src/engine.d.mts",
+    "next.config.ts",
+    "proxy.ts",
+    "tests/session-S02.test.mjs",
+    "tools/apply-schema.mjs",
+    "tools/s02-leak-check.mjs",
+    "tools/s02-second-browser.mjs",
+    "decisions/DECISIONS.md",
+    "logs/CO_BUILD_LOG.md"
+  ],
+  "automated_checks": [
+    { "name": "Full suite 49/49: reference engine, invariants, S01 and S02 session tests", "status": "pass", "evidence": "evidence/S02/automated-checks.log" },
+    { "name": "S02 session tests: queue admission, hidden information, idempotency/stale/turn order, full rated match and replay, reconnect, private rooms, R26 timeouts (7/7)", "status": "pass", "evidence": "evidence/S02/automated-checks.log" },
+    { "name": "Production build", "status": "pass", "evidence": "evidence/S02/build.log" },
+    { "name": "db/002_play.sql applied to Neon; rerun is a no-op and the ruleset hash is unchanged", "status": "pass", "evidence": "evidence/S02/neon-schema-rerun.log" }
+  ],
+  "manual_checks": [
+    { "name": "Two authenticated browsers complete a persisted casual match", "status": "pass", "evidence": "evidence/S02/browser-observation.log" },
+    { "name": "Concurrent duplicate commands apply once; stale commands rejected with 409", "status": "pass", "evidence": "evidence/S02/browser-observation.log" },
+    { "name": "Reconnect (reload) restores the same seat state", "status": "pass", "evidence": "evidence/S02/browser-observation.log" },
+    { "name": "Result and casual rating applied once; history, leaderboard and replay agree", "status": "pass", "evidence": "evidence/S02/leaderboard.png" },
+    { "name": "Both network views inspected: no hidden information against states rebuilt from Neon", "status": "pass", "evidence": "evidence/S02/leak-check.log" }
+  ],
+  "blockers": []
+}

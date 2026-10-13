@@ -1,0 +1,56 @@
+$ npm run build
+
+> eco-dominion-prepared-starter@1.0.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+- Environments: .env.local, .env
+✓ Running next.config.ts took 68ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1458ms
+  Running TypeScript ...
+  Finished TypeScript in 5.3s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 446ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/auth/[...path]
+├ ƒ /api/history
+├ ƒ /api/leaderboard
+├ ƒ /api/matches/[id]
+├ ƒ /api/matches/[id]/commands
+├ ƒ /api/matches/[id]/replay
+├ ƒ /api/players/[handle]
+├ ƒ /api/profile
+├ ƒ /api/queue
+├ ƒ /api/rooms
+├ ƒ /api/rooms/[code]
+├ ƒ /api/rooms/join
+├ ƒ /history
+├ ƒ /leaderboard
+├ ○ /login
+├ ƒ /matches/[id]
+├ ƒ /matches/[id]/replay
+├ ƒ /play
+├ ƒ /players/[handle]
+├ ƒ /profile
+├ ○ /recover
+├ ○ /register
+├ ○ /reset-password
+└ ○ /rules
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.

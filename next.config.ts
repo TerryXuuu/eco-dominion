@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['@neondatabase/serverless', 'ws'],
+  // lib/engine.ts loads the reference engine at runtime, outside the bundle.
+  outputFileTracingIncludes: { '/**': ['./src/engine.mjs', './data/cards.json'] },
   async headers() {
     return [
       {
