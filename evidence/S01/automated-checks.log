@@ -1,0 +1,82 @@
+﻿$ node --test tests/engine.test.mjs tests/invariants.test.mjs
+鉁?Catalog exactly matches 74 main and 20 event cards (6.6953ms)
+鉁?Seed gives identical initial state and first turn starts at one energy (5.4227ms)
+鉁?Opponent and spectator do not receive hidden deck hand seed or PRNG (1.361ms)
+鉁?Out of turn and stale commands rejected without mutating state (1.6274ms)
+鉁?Repeated accepted command is idempotent (1.1046ms)
+鉁?Illegal regions and underpayment rejected atomically (4.7578ms)
+鉁?Species cannot spend reserve (0.9129ms)
+鉁?Spells consume reserve before current energy (0.5758ms)
+鉁?Mouse enter effect capped and same owner regional deer synergy (0.9749ms)
+鉁?Synergies do not cross owners or regions (0.6676ms)
+鉁?beetle enter changes stability exactly once (0.5099ms)
+鉁?beaver enter changes stability exactly once (0.4197ms)
+鉁?snake enter changes stability exactly once (0.3663ms)
+鉁?oak enter changes stability exactly once (0.4015ms)
+鉁?fox draws correct enter count (0.5241ms)
+鉁?lizard draws correct enter count (0.3579ms)
+鉁?heron draws correct enter count (0.263ms)
+鉁?ray draws correct enter count (0.2633ms)
+鉁?guardian draws correct enter count (0.3459ms)
+鉁?Algae targets arbitrary region stability and applies threshold aura (0.9727ms)
+鉁?Bison requires valid enemy controller; absent target does not fabricate damage (0.9081ms)
+鉁?Falcon aura includes self and stacks per source (0.3549ms)
+鉁?Panther enters temporary enemy penalty and no remove (0.4697ms)
+鉁?Guardian uniqueness is per player (2.2449ms)
+鉁?Migration does not repeat enter effect and draws one (0.7047ms)
+鉁?Fortify and infuse require control; bloom affects current units only (0.838ms)
+鉁?Erode target ownership and destroy denial tracked (0.6701ms)
+鉁?Break disables regional enemy synergies but not other passives (0.535ms)
+鉁?Snake ray immunity protects once against veil only (0.6778ms)
+鉁?Steal drops reserve or seeded random discard if already zero (0.5618ms)
+鉁?Charge capped at three (0.3245ms)
+鉁?Hand overflow pauses command stream and requires exact owned discards (1.1292ms)
+鉁?Nonpositive stability suppresses synergies and permanent penalty survives refresh (1.4273ms)
+鉁?Domination stops at settlement controlling three stable regions (0.6746ms)
+鉁?End score ignores temporary effects and ties are neutral (0.6899ms)
+鉁?Shared discard reshuffles, exhausted deployable deck does not lose (0.5696ms)
+鉁?All ten event branches execute and state remains serializable (5.1843ms)
+鉁?End score removes temporary synergy suppression as well as numeric buffs (0.8161ms)
+鉁?100 seeded pass-only games conserve all cards, finish, and preserve projection privacy (2215.1194ms)
+鈩?tests 39
+鈩?suites 0
+鈩?pass 39
+鈩?fail 0
+鈩?cancelled 0
+鈩?skipped 0
+鈩?todo 0
+鈩?duration_ms 2528.2993
+
+exit 0
+
+$ node --test tests/session-S01.test.mjs
+鉁?owner approval covers every ruling, keeps ranked off and preserves the 36-card baseline (31.3455ms)
+鉁?engine hides hands and follows the corrected energy and final-turn rulings (9.0735ms)
+鉁?schema maps two users and refuses private or cross-account changes (4920.7553ms)
+鈩?tests 3
+鈩?suites 0
+鈩?pass 3
+鈩?fail 0
+鈩?cancelled 0
+鈩?skipped 0
+鈩?todo 0
+鈩?duration_ms 15390.3094
+
+exit 0
+
+$ npm run typecheck
+node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help
+ npmrc` for supported config options.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> eco-dominion-prepared-starter@1.0.0 typecheck
+> tsc --noEmit
+
+
+exit 0
+

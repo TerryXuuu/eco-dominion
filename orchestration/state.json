@@ -4,11 +4,11 @@
   "active": "S01",
   "sessions": {
     "S01": {
-      "status": "blocked",
+      "status": "active",
       "implementation_commit": null,
       "checkpoint": "c3c6ada4ecbeb888b4a34d5487195af513f857b5",
-      "blocker": "Computer shutdown requested; resume S01 from the preserved foundation. Still needed: decisions/OWNER_RULES_APPROVAL.md citing R01-R26 and any exceptions, plus a gitignored .env with DATABASE_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET (32+ characters) and NEXT_PUBLIC_APP_URL.",
-      "next_action": "Computer shutdown requested; resume S01 from the preserved foundation. Still needed: decisions/OWNER_RULES_APPROVAL.md citing R01-R26 and any exceptions, plus a gitignored .env with DATABASE_URL, NEON_AUTH_BASE_URL, NEON_AUTH_COOKIE_SECRET (32+ characters) and NEXT_PUBLIC_APP_URL."
+      "blocker": null,
+      "next_action": "[WinError 2] \u7cfb\u7edf\u627e\u4e0d\u5230\u6307\u5b9a\u7684\u6587\u4ef6\u3002; inspect existing evidence and resolve before resume."
     },
     "S02": {
       "status": "pending",

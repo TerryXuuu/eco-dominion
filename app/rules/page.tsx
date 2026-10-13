@@ -1,5 +1,5 @@
 import { SiteHeader } from '../components/site-header';
-import { CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID } from '@/lib/rulings';
+import { APPROVAL, CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID } from '@/lib/rulings';
 
 export default function RulesPage() {
   const legal = CORRECTED_ENERGY_EXAMPLE.legal;
@@ -8,9 +8,9 @@ export default function RulesPage() {
       <SiteHeader />
       <main className="shell">
         <section className="hero">
-          <p className="note">Owner approval is not recorded</p>
-          <h1>Digital rulings draft</h1>
-          <p className="lede">Ruleset {RULESET_ID}. These 26 resolutions are proposals. They are not an owner signature.</p>
+          <p className="note">Approved by {APPROVAL.owners} on {APPROVAL.date} · ranked play disabled</p>
+          <h1>Digital rulings</h1>
+          <p className="lede">Ruleset {RULESET_ID}. All 26 resolutions are approved for local and casual play. Ranked release waits for balance testing and a separate owner decision.</p>
         </section>
         <section className="panel example">
           <h2>Corrected energy example · R22</h2>

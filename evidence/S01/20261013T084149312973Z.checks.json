@@ -1,0 +1,42 @@
+{
+  "session": "S01",
+  "runs": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/engine.test.mjs",
+        "tests/invariants.test.mjs"
+      ],
+      "exit_code": 0,
+      "log": "evidence\\S01\\20261013T084119201544Z.log"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "tests/session-S01.test.mjs"
+      ],
+      "exit_code": 0,
+      "log": "evidence\\S01\\20261013T084133355379Z.log"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exit_code": 0,
+      "log": "evidence\\S01\\20261013T084138693791Z.log"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log": "evidence\\S01\\20261013T084149311542Z.log"
+    }
+  ]
+}

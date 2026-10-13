@@ -1,0 +1,51 @@
+﻿$ npm run build
+node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help
+ npmrc` for supported config options.
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> eco-dominion-prepared-starter@1.0.0 build
+> next build
+
+鈻?Next.js 16.4.0 (Turbopack)
+- Environments: .env.local, .env
+鉁?Running next.config.ts took 107ms
+
+  Creating an optimized production build ...
+鉁?Compiled successfully in 1160ms
+  Running TypeScript ...
+  Finished TypeScript in 10.6s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+鉁?Generating static pages using 3 workers (7/7) in 667ms
+  Finalizing page optimization ...
+
+Route (app)
+鈹?茠 /
+鈹?鈼?/_not-found
+鈹?茠 /api/auth/[...path]
+鈹?茠 /api/players/[handle]
+鈹?茠 /api/profile
+鈹?鈼?/login
+鈹?茠 /players/[handle]
+鈹?茠 /profile
+鈹?鈼?/recover
+鈹?鈼?/register
+鈹?鈼?/reset-password
+鈹?鈼?/rules
+
+
+茠 Proxy (Middleware)
+
+鈼? (Static)   prerendered as static content
+茠  (Dynamic)  server-rendered on demand
+
+
+exit 0

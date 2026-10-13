@@ -1,5 +1,11 @@
-/** Draft digital rulings. approved stays false until the owner records a decision. */
-export const RULESET_ID = 'digital-1.0-draft';
+/** Owner-approved in decisions/OWNER_RULES_APPROVAL.md. Ranked release was not approved. */
+export const RULESET_ID = 'digital-1.0';
+export const APPROVAL = {
+  record: 'decisions/OWNER_RULES_APPROVAL.md',
+  owners: 'Lynx & Terry',
+  date: '2026-10-13',
+  rankedEnabled: false,
+} as const;
 
 export const RULINGS: { id: string; summary: string }[] = [
   { id: 'R01', summary: 'Eight personal turns each, alternating, at most 16 settlements. Domination is checked at settlement, including the last turn; otherwise score after both counters reach 8.' },

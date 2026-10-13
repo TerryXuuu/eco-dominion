@@ -4,17 +4,25 @@ import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { canViewProfile, handleFromEmail, parseProfilePatch, sameOrigin } from '../lib/profile-policy.ts';
 import { getOwnProfile, provisionUser, updateOwnProfile, viewProfile } from '../lib/profile-service.ts';
-import { CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID, spendSpell } from '../lib/rulings.ts';
+import { APPROVAL, CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID, spendSpell } from '../lib/rulings.ts';
 import { CARDS, apply, newGame, project } from '../src/engine.mjs';
 
 const ada = { subject: 'auth-ada', email: 'ada@example.com', name: 'Ada', emailVerified: true };
 const bea = { subject: 'auth-bea', email: 'bea@example.com', name: 'Bea', emailVerified: true };
 
-test('draft rulings and the 36-card baseline stay unapproved', () => {
+test('owner approval covers every ruling, keeps ranked off and preserves the 36-card baseline', () => {
   assert.equal(CARDS.length, 36);
   assert.equal(new Set(CARDS.map((card) => card.id)).size, 36);
-  assert.equal(RULINGS.map((ruling) => ruling.id).join(','), Array.from({ length: 26 }, (_, index) => `R${String(index + 1).padStart(2, '0')}`).join(','));
-  assert.equal(RULESET_ID, 'digital-1.0-draft');
+  const ids = Array.from({ length: 26 }, (_, index) => `R${String(index + 1).padStart(2, '0')}`);
+  assert.equal(RULINGS.map((ruling) => ruling.id).join(','), ids.join(','));
+  assert.equal(RULESET_ID, 'digital-1.0');
+  assert.equal(APPROVAL.rankedEnabled, false);
+  const approval = readFileSync(new URL('../decisions/OWNER_RULES_APPROVAL.md', import.meta.url), 'utf8');
+  assert.match(approval, /^Status: Approved$/m);
+  assert.doesNotMatch(approval, /pending owner confirmation|NOT APPROVED/);
+  assert.match(approval, /^Owner name: \S/m);
+  for (const id of ids) assert.match(approval, new RegExp(`^\\|\\s*${id}\\s*\\|[^|]*\\|\\s*approve\\s*\\|`, 'm'), id);
+  assert.match(approval, /Owner decision: Not approved; ranked play stays disabled/);
   assert.equal(CORRECTED_ENERGY_EXAMPLE.legal.afterDeer.energy, 2);
   assert.equal(CORRECTED_ENERGY_EXAMPLE.legal.afterDeer.reserve, 1);
   assert.deepEqual(CORRECTED_ENERGY_EXAMPLE.legal.afterFortify, { energy: 0, reserve: 0 });

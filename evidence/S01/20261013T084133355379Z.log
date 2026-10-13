@@ -1,0 +1,12 @@
+$ node --test tests/session-S01.test.mjs
+✔ owner approval covers every ruling, keeps ranked off and preserves the 36-card baseline (6.2051ms)
+✔ engine hides hands and follows the corrected energy and final-turn rulings (9.1784ms)
+✔ schema maps two users and refuses private or cross-account changes (3668.7989ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14016.0417

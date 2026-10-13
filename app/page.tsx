@@ -19,7 +19,7 @@ export default async function HomePage() {
           <p className="note">Ruleset {RULESET_ID}</p>
           <h1>A small table for a living dominion.</h1>
           <p className="lede">
-            Register, keep a protected profile, and prepare for server-authoritative matches. Digital rulings R01–R26 stay a draft until the owner records approval.
+            Register, keep a protected profile, and prepare for server-authoritative matches. Digital rulings R01–R26 are approved for casual play; ranked play stays off until balance testing.
           </p>
           <div className="row">
             <Link className="button" href={email ? '/profile' : '/register'}>{email ? 'Open profile' : 'Create account'}</Link>
@@ -36,8 +36,8 @@ export default async function HomePage() {
             <p>Passwords and sessions stay with Neon Auth. This app stores the profile, role, and game permissions.</p>
           </article>
           <article className="panel draft">
-            <h2>Draft rules</h2>
-            <p>The reference engine already plays the draft. Ranked release waits for an owner decision on every R-ID.</p>
+            <h2>Approved rules</h2>
+            <p>The owners approved R01–R26 for casual play. Ranked release needs balance testing and a separate decision.</p>
           </article>
         </section>
       </main>

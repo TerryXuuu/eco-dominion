@@ -1,0 +1,42 @@
+{
+  "session": "S01",
+  "architecture_version": "2.3",
+  "summary": "Owner approval of R01-R26 recorded by Lynx and Terry (ranked play not approved, disabled). Neon Auth and the Neon database are linked; the schema and approved ruleset digital-1.0 are applied. Two real accounts registered and logged in with separate protected profiles; logout, recovery (via an issued reset token; email delivery to a .test address not observed) and profile isolation were observed in the browser; unauthorized and cross-origin access is denied. Two defects found during observation were fixed: logout now clears local session cookies when upstream revocation fails, and auth forms report network failures instead of hanging.",
+  "changed_files": [
+    "app/login/actions.ts",
+    "app/page.tsx",
+    "app/profile/actions.ts",
+    "app/recover/actions.ts",
+    "app/register/actions.ts",
+    "app/reset-password/actions.ts",
+    "app/rules/page.tsx",
+    "lib/auth.ts",
+    "lib/rulings.ts",
+    "tests/session-S01.test.mjs",
+    "tools/apply-schema.mjs",
+    "neon.ts",
+    "package.json",
+    "package-lock.json",
+    ".gitignore",
+    "decisions/OWNER_RULES_APPROVAL.md",
+    "decisions/DECISIONS.md",
+    "logs/CO_BUILD_LOG.md",
+    ".agents/",
+    "skills-lock.json"
+  ],
+  "automated_checks": [
+    { "name": "Reference engine and invariant tests (39/39)", "status": "pass", "evidence": "evidence/S01/automated-checks.log" },
+    { "name": "S01 session tests: approval, engine rulings, PGlite two-user isolation (3/3)", "status": "pass", "evidence": "evidence/S01/automated-checks.log" },
+    { "name": "TypeScript typecheck", "status": "pass", "evidence": "evidence/S01/automated-checks.log" },
+    { "name": "Production build", "status": "pass", "evidence": "evidence/S01/build.log" },
+    { "name": "Neon schema and approved ruleset applied; rerun is a no-op", "status": "pass", "evidence": "evidence/S01/neon-schema-rerun.log" }
+  ],
+  "manual_checks": [
+    { "name": "Two accounts register and log in with separate protected profiles", "status": "pass", "evidence": "evidence/S01/browser-two-account-observation.log" },
+    { "name": "Logout ends the session", "status": "pass", "evidence": "evidence/S01/after-logout-home.png" },
+    { "name": "Recovery: reset token issued, password changed, old password refused (email delivery not observed)", "status": "pass", "evidence": "evidence/S01/browser-two-account-observation.log" },
+    { "name": "Profile isolation and unauthorized/cross-origin denial", "status": "pass", "evidence": "evidence/S01/browser-two-account-observation.log" },
+    { "name": "Corrected energy example (R22) and final-turn ruling (R01) reviewed on /rules", "status": "pass", "evidence": "evidence/S01/browser-two-account-observation.log" }
+  ],
+  "blockers": []
+}

@@ -13,6 +13,16 @@ export const auth = createNeonAuth({
 
 export const authConfigured = env.configured;
 
+/** Upstream auth calls can throw on network failure instead of returning { error }; forms must still get a response. */
+export async function settleAuth<T extends { error?: unknown }>(label: string, call: () => Promise<T>) {
+  try {
+    return await call();
+  } catch (error) {
+    console.error(`[auth] ${label} failed`, error);
+    return { error: { message: 'Authentication service unreachable' } };
+  }
+}
+
 export type SessionUser = {
   id: string;
   email: string;

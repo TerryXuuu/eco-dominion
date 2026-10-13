@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """One bounded unit at a time; explicit evidence and per-unit commit governance."""
 from pathlib import Path
-import argparse,datetime,hashlib,json,os,shlex,subprocess,sys
+import argparse,datetime,hashlib,json,os,shlex,shutil,subprocess,sys
 ROOT=Path(__file__).resolve().parents[1]
 M=ROOT/'orchestration/manifest.json';S=ROOT/'orchestration/state.json'
 def execute(args,check=True):
- return subprocess.run(args,cwd=ROOT,text=True,capture_output=True,check=check)
+ # Windows cannot spawn npm/npx (.cmd shims) by bare name without PATHEXT resolution.
+ args=[shutil.which(args[0]) or args[0],*args[1:]]
+ return subprocess.run(args,cwd=ROOT,text=True,capture_output=True,check=check,encoding='utf-8',errors='replace')
 def git(*args):return execute(['git',*args]).stdout.strip()
 def read(p):return json.loads(p.read_text())
 def die(message):raise RuntimeError(message)

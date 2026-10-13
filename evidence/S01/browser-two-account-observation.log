@@ -1,0 +1,77 @@
+S01 two-account browser observation
+Observed 2026-10-13 ~07:45Z-08:20Z against `next start` (production build) on http://localhost:3000,
+real Neon Auth (branch production, br-broad-haze-b3ria0ce) and the Neon database with db/001_initial.sql applied.
+Browser: Cursor IDE browser tab. Test accounts use throwaway passwords that are not recorded here.
+
+Account A: s01-ada@ecodominion.test  handle s01ada  display "Ada Forest"
+Account B: s01-bea@ecodominion.test  handle s01bea  display "Bea Meadow"
+
+1. Registration and protected profile
+   - A registered at /register and landed on /profile showing "s01-ada@ecodominion.test · player · active".
+   - B registered at /register. The first attempt hung on "Creating…" (see defect 2); the account had been created
+     upstream, and B then logged in at /login and landed on /profile showing "s01-bea@ecodominion.test · player · active".
+   - Database after both: two app_user rows with 2 distinct auth_subject values, each with its own profile row and
+     user_role ['player']; status active for both.
+
+2. Profile edit (A)
+   - Set bio "Private canopy notes for S01", visibility Private, Save profile -> "Profile saved."
+   - Reloaded /profile on a fresh server process: bio and Private persisted.
+   - GET /api/profile as A: 200, cache-control "private, no-store", email s01-ada@ecodominion.test, visibility private.
+   - Note: during this step an exploratory same-origin PATCH from A's own session (intended as a CSRF probe) succeeded
+     with 200 and briefly set A's display name to "X" / public. That is correct owner behaviour, not a leak. A was
+     restored to "Ada Forest" / private / original bio immediately, before B existed. The real cross-origin probe is in step 5.
+
+3. Logout
+   - First attempt: clicking Log out left A on /profile and /api/profile still returned 200 (defect 1). Fixed, rebuilt.
+   - After the fix, A: Log out -> landed on /, /api/profile 401.
+   - After the fix, B: Log out -> header showed "Log in / Register", /api/profile 401. The server log showed the upstream
+     /auth/sign-out call timing out (UND_ERR_CONNECT_TIMEOUT) on this attempt, so the local session cookies were cleared
+     even though the upstream session was not revoked; that upstream session expires on its own schedule.
+
+4. Profile isolation (signed in as B)
+   - GET /api/profile: 200 with B's own data only (handle s01bea, email s01-bea@ecodominion.test).
+   - GET /api/players/s01ada: 404 {"error":"Not found"}; body did not contain A's bio.
+   - GET /players/s01ada (page): 404; HTML contained neither A's bio nor A's email.
+   - PATCH /api/profile with handle "s01ada" (claim A's handle): 409 "Unable to save profile"; B's handle stayed s01bea.
+
+5. Unauthorized / cross-origin access (curl, no session)
+   - PATCH /api/profile with Origin https://evil.example: 403
+   - PATCH /api/profile with Origin http://localhost:3000, no session: 401
+   - GET /api/profile: 401
+   - GET /profile: 307 -> http://localhost:3000/login
+   - GET /api/players/s01ada (private): 404
+   - GET /api/players/nobody_here (unknown): 404
+
+6. Recovery (A)
+   - /recover with s01-ada@ecodominion.test -> "If an account exists for that email, a recovery message has been requested."
+   - neon_auth.verification gained one reset-password row for A created 2026-10-13T08:11:32.674Z, expiring 09:11:32Z.
+   - Email delivery was NOT observed: .test addresses cannot receive mail. The reset link was built from that issued token
+     (the same /reset-password?token=... form the emailed link redirects to) and opened in the browser.
+   - Entered a new password -> redirected to /login.
+   - Login with A's old password: "Email or password is incorrect" (server log showed no network error for this attempt).
+   - Login with the new password: /profile, /api/profile 200, handle s01ada, "Ada Forest", visibility private.
+
+7. Rulings review (/rules)
+   - Header: "Approved by Lynx & Terry on 2026-10-13 · ranked play disabled".
+   - R22 corrected energy example: energy 4 / reserve 0 cannot pay deer (2) then fortify (3); legal line starts at energy 4 /
+     reserve 1, deer leaves energy 2 / reserve 1, fortify ends at energy 0 / reserve 0. Matches lib/rulings.ts
+     CORRECTED_ENERGY_EXAMPLE and tests/session-S01.test.mjs.
+   - R01 final turn: domination is checked at every settlement including the last; otherwise scoring happens only after
+     both personal-turn counters reach 8.
+   - Database ruleset: digital-1.0, approved_at 2026-10-13, digital_rules.ranked = false.
+
+Defects found and fixed during observation
+   1. Logout depended on the upstream sign-out call. When Neon Auth timed out, the server action threw before clearing
+      cookies, so the cached session_data cookie kept the user signed in. app/profile/actions.ts now clears all
+      __Secure-neon-auth* cookies regardless of the upstream result.
+   2. Auth server actions (sign-up, sign-in, recovery request, reset) did not catch thrown network errors, so forms hung.
+      lib/auth.ts settleAuth() converts thrown failures to { error } and logs them; forms now show an error message.
+
+Environment note
+   - Neon Auth endpoint ep-blue-base-b37503az.neonauth.c-4.ap-southeast-1.aws.neon.tech resolves to 3 IPs; one
+     (54.151.166.86) refused TCP from this network. curl succeeded 6/6 but sometimes took ~5s; Node's fetch
+     intermittently timed out. Several actions above needed a retry for that reason.
+
+Known cosmetic issue (not fixed in S01)
+   - /rules is statically prerendered, so its header shows "Log in / Register" even for a signed-in user.
+   - The login form reports any upstream failure, including network timeouts, as "Email or password is incorrect".
