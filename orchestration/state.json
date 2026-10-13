@@ -1,7 +1,7 @@
 {
   "architecture_version": "2.3",
   "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
-  "active": "S04",
+  "active": null,
   "sessions": {
     "S01": {
       "status": "accepted",
@@ -115,11 +115,24 @@
       ]
     },
     "S04": {
-      "status": "active",
-      "implementation_commit": null,
+      "status": "accepted",
+      "implementation_commit": "4999365d0e715483c5b782fee5696c2730793723",
       "checkpoint": "b641341aed08c222a54f6396799e894918b46c52",
       "blocker": null,
-      "next_action": "Implement S04 prompt; commit checkpoint metadata with implementation."
+      "next_action": "Accepted; review evidence before next session.",
+      "test_receipt": "evidence\\S04\\20261013T125253098142Z.checks.json",
+      "changed_files": [
+        "README.md",
+        "app/community/community-client.tsx",
+        "app/globals.css",
+        "app/layout.tsx",
+        "lib/community-service.ts",
+        "lib/match-service.ts",
+        "lib/profile-policy.ts",
+        "tests/session-S04.test.mjs",
+        "decisions/DECISIONS.md",
+        "logs/CO_BUILD_LOG.md"
+      ]
     }
   }
 }

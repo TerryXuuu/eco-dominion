@@ -1,0 +1,11 @@
+$ node --test tests/session-S04.test.mjs
+✔ one journey: casual match, public post, like, then a block that hides the feed and stops rematching (4171.1576ms)
+✔ suspended players can read and cannot queue, command, post or follow; replay of a finished match matches the stored version (4544.6327ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18218.8189
