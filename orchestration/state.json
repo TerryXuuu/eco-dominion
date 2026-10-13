@@ -1,21 +1,44 @@
 {
   "architecture_version": "2.3",
   "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
-  "active": "S01",
+  "active": "S02",
   "sessions": {
     "S01": {
-      "status": "active",
-      "implementation_commit": null,
+      "status": "accepted",
+      "implementation_commit": "1ab75aa52dc7f69a5f25082240994ca1495acfb1",
       "checkpoint": "c3c6ada4ecbeb888b4a34d5487195af513f857b5",
       "blocker": null,
-      "next_action": "[WinError 2] \u7cfb\u7edf\u627e\u4e0d\u5230\u6307\u5b9a\u7684\u6587\u4ef6\u3002; inspect existing evidence and resolve before resume."
+      "next_action": "Accepted; review evidence before next session.",
+      "test_receipt": "evidence\\S01\\20261013T084221358553Z.checks.json",
+      "changed_files": [
+        "app/login/actions.ts",
+        "app/page.tsx",
+        "app/profile/actions.ts",
+        "app/recover/actions.ts",
+        "app/register/actions.ts",
+        "app/reset-password/actions.ts",
+        "app/rules/page.tsx",
+        "lib/auth.ts",
+        "lib/rulings.ts",
+        "tests/session-S01.test.mjs",
+        "tools/apply-schema.mjs",
+        "neon.ts",
+        "package.json",
+        "package-lock.json",
+        ".gitignore",
+        "decisions/OWNER_RULES_APPROVAL.md",
+        "decisions/DECISIONS.md",
+        "logs/CO_BUILD_LOG.md",
+        ".agents/",
+        "skills-lock.json"
+      ]
     },
     "S02": {
-      "status": "pending",
+      "status": "active",
       "implementation_commit": null,
       "checkpoint": null,
       "blocker": null,
-      "next_action": null
+      "next_action": "Read active prompt and create pre-session checkpoint."
     },
     "S03": {
       "status": "pending",

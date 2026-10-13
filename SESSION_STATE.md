@@ -1,10 +1,10 @@
 # Resume checkpoint
 
-Active session: S01.
+Active session: S02.
 Status: active.
 Blocker: none recorded.
-Next action: [WinError 2] 系统找不到指定的文件。; inspect existing evidence and resolve before resume..
-Rollback: c3c6ada4ecbeb888b4a34d5487195af513f857b5.
+Next action: Read active prompt and create pre-session checkpoint..
+Rollback: create checkpoint before implementation.
 
 No session is complete without its implementation hash, evidence and ledger transition commit. Failed evidence is retained.
 
