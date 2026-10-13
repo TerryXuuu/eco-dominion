@@ -1,0 +1,11 @@
+{
+  "edit": 403,
+  "mod": 403,
+  "report": 201,
+  "editBody": {
+    "error": "Only the author can change this post"
+  },
+  "modBody": {
+    "error": "Moderators only"
+  }
+}

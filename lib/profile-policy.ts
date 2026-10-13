@@ -66,6 +66,15 @@ export function accountGate(status: string, mutation: boolean): { ok: true } | {
   return { ok: false, error: 'Forbidden' };
 }
 
+/** Service-level copy of the route gate, so tests and any caller besides HTTP still refuse suspended mutations. */
+export async function mutationGate(
+  client: { query: (text: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> },
+  userId: string,
+) {
+  const row = await client.query(`SELECT status FROM app_user WHERE id = $1`, [userId]);
+  return accountGate(String(row.rows[0]?.status ?? 'deleted'), true);
+}
+
 export function sameOrigin(request: { headers: { get(name: string): string | null } }) {
   const origin = request.headers.get('origin');
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');

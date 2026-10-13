@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: 'Community platform for two-player Eco Dominion matches.',
 };
 
+export const viewport = { width: 'device-width', initialScale: 1 };
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

@@ -1,0 +1,28 @@
+{
+  "session": "S04",
+  "architecture_version": "2.3",
+  "summary": "Integrated validation and source handoff. Suspended players are refused at the service as well as the HTTP gate. Mobile nav wraps; compose shows a publishing state. README documents local run and known limitations. Observed: S02 replay step 59 is identical on repeat fetch with the opponent hand omitted; two browsers repeated post/like/comment, 403 on cross-user edit and moderation, then block. Engine, 55 integration tests, typecheck and production build pass. No deployment.",
+  "changed_files": [
+    "README.md",
+    "app/community/community-client.tsx",
+    "app/globals.css",
+    "app/layout.tsx",
+    "lib/community-service.ts",
+    "lib/match-service.ts",
+    "lib/profile-policy.ts",
+    "tests/session-S04.test.mjs",
+    "decisions/DECISIONS.md",
+    "logs/CO_BUILD_LOG.md"
+  ],
+  "automated_checks": [
+    { "name": "Full suite 55/55: engine, invariants, S01–S04", "status": "pass", "evidence": "evidence/S04/automated-checks.log" },
+    { "name": "S04 integration: match+feed+block rematch refusal; suspend cannot mutate; replay matches stored version", "status": "pass", "evidence": "evidence/S04/automated-checks.log" },
+    { "name": "Production build", "status": "pass", "evidence": "evidence/S04/build.log" }
+  ],
+  "manual_checks": [
+    { "name": "Two independent browsers: post, like, comment, 403 moderation, block hides the post", "status": "pass", "evidence": "evidence/S04/browser-observation.log" },
+    { "name": "Replay step 59 identical on repeat fetch; opponent hand omitted", "status": "pass", "evidence": "evidence/S04/replay-reconnect.json" },
+    { "name": "Phone-sized viewport: header nav wraps; compose remains usable", "status": "pass", "evidence": "evidence/S04/mobile-community.png" }
+  ],
+  "blockers": []
+}

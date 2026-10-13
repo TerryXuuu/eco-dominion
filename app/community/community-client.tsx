@@ -49,7 +49,7 @@ export function Compose({ suspended }: { suspended: boolean }) {
           <option value="private">Only me</option>
         </select>
       </label>
-      <button disabled={busy || body.trim().length === 0} type="submit">Publish</button>
+      <button disabled={busy || body.trim().length === 0} type="submit">{busy ? 'Publishing…' : 'Publish'}</button>
       {error && <p className="error" role="alert">{error}</p>}
     </form>
   );

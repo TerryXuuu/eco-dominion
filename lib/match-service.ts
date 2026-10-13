@@ -13,6 +13,7 @@ import {
   type AppliedCommand,
   type Snapshot,
 } from './match-rules.ts';
+import { mutationGate } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
 export type Mode = 'casual' | 'private';
@@ -134,6 +135,8 @@ async function queueView(client: Queryable, userId: string) {
 }
 
 export async function enterQueue(client: Queryable, userId: string, now: number) {
+  const gate = await mutationGate(client, userId);
+  if (!gate.ok) return fail(403, gate.error);
   await client.query(`SELECT pg_advisory_xact_lock($1)`, [QUEUE_LOCK]);
   const active = await activeMatchFor(client, userId);
   if (active) return { status: 200, body: { status: 'matched', matchId: active } };
@@ -330,6 +333,8 @@ export function parseCommand(input: unknown) {
 }
 
 export async function submitCommand(client: Queryable, userId: string, matchId: unknown, input: unknown, now: number) {
+  const gate = await mutationGate(client, userId);
+  if (!gate.ok) return fail(403, gate.error);
   if (!isUuid(matchId)) return fail(404, 'Match not found');
   const parsed = parseCommand(input);
   if (!parsed) return fail(400, 'Invalid command');

@@ -1,0 +1,18 @@
+S04 browser observation, 13 October 2026 (UTC). Production build (`next start`, port 3000) against real Neon Auth and Neon.
+No passwords are recorded. No deployment.
+
+1. Replay and reconnect (Ada, match 30232111-6158-45c0-ba44-55c1bd353ced from S02)
+   - Replay API step 59 fetched twice after a reload: identical game JSON, result score 0–18 winner seat 1, opponent hand omitted (replay-reconnect.json).
+
+2. Two independent browsers on community
+   - Ada published "S04 public note for the second browser." The compose button showed "Publishing…" while the request ran.
+   - A separate headless Chrome registered an ordinary player, found the post, liked (200) and commented (201), then PATCH 403 "Only the author can change this post", POST /api/moderation 403 "Moderators only", report 201, then blocked Ada: feed empty and thread 404 (second-browser.log, second-player-engage.json, bea-forbidden.json, bea-after-block.json).
+   - Ada reloaded the post: Like (1) (ada-post-after-like.png). The comment is hidden from Ada because the commenter blocked her.
+
+3. Responsive controls
+   - At a phone-sized viewport the header nav wraps onto a second row; the compose form stays usable (mobile-community.png).
+
+4. Suspended mutations
+   - Confirmed in tests/session-S04.test.mjs against PGlite: after a moderator suspend, the player still reads a finished match and replay, but enterQueue, createPost and follow return 403. Not re-run in the browser in this session (S03 already showed hide/dismiss on the live moderator queue).
+
+Engine tests, 55/55 integration tests, typecheck and production build pass. Known limitations are in README.md. Source handoff only.

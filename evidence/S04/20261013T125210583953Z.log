@@ -1,0 +1,74 @@
+$ npm run build
+
+> eco-dominion-prepared-starter@1.0.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+- Environments: .env.local, .env
+✓ Running next.config.ts took 84ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 887ms
+  Running TypeScript ...
+  Finished TypeScript in 5.1s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 669ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/auth/[...path]
+├ ƒ /api/comments/[id]
+├ ƒ /api/feed
+├ ƒ /api/history
+├ ƒ /api/leaderboard
+├ ƒ /api/matches/[id]
+├ ƒ /api/matches/[id]/commands
+├ ƒ /api/matches/[id]/replay
+├ ƒ /api/moderation
+├ ƒ /api/moderation/audit
+├ ƒ /api/notifications
+├ ƒ /api/players/[handle]
+├ ƒ /api/players/[handle]/relationship
+├ ƒ /api/posts
+├ ƒ /api/posts/[id]
+├ ƒ /api/posts/[id]/comments
+├ ƒ /api/posts/[id]/like
+├ ƒ /api/profile
+├ ƒ /api/queue
+├ ƒ /api/relationships
+├ ƒ /api/reports
+├ ƒ /api/rooms
+├ ƒ /api/rooms/[code]
+├ ƒ /api/rooms/invite
+├ ƒ /api/rooms/join
+├ ƒ /community
+├ ƒ /community/[id]
+├ ƒ /history
+├ ƒ /leaderboard
+├ ○ /login
+├ ƒ /matches/[id]
+├ ƒ /matches/[id]/replay
+├ ƒ /moderation
+├ ƒ /notifications
+├ ƒ /people
+├ ƒ /play
+├ ƒ /players/[handle]
+├ ƒ /profile
+├ ○ /recover
+├ ○ /register
+├ ○ /reset-password
+└ ○ /rules
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.

@@ -22,3 +22,5 @@ Architecture 2.0 replaces 1.0 for this edition at owner request: four 4-hour blo
 - Ratings: only casual-queue matches are rated, with Elo K=32 starting at 1000 and labelled "casual rating". Private-room matches are unrated. This is not ranked play, which remains disabled.
 
 13 October 2026, owner decision (Terry) for S03: Ada Forest (@s01ada) is granted the moderator role so reports, hide/suspend actions and the audit trail can be observed in a real browser. Bea Meadow stays an ordinary player and is the account that must be refused when she tries to moderate. Roles are stored in `user_role` and granted only by the operator script `tools/grant-role.mjs`; there is no self-service promotion.
+
+13 October 2026, S04 handoff: no new owner rulings. Ranked play remains disabled. Limitations observed across S01–S04 are listed in README.md (no wall-clock timeout worker, no `.test` email delivery, intermittent Neon Auth, no media uploads, no Vercel publish). Source is the handoff; this is not a production release.

@@ -11,3 +11,29 @@ Status: `python tools/auto_run.py status`. Safe pause: `python tools/auto_run.py
 The runner initializes a new isolated Git repository only on a clean prepared starter. An existing repository must have an attributable baseline and no unrelated changes before a new checkpoint. It never rewrites accepted history. Commit identity must be configured in an existing checkout; a fresh starter uses Eco Dominion Starter attribution unless you set your name/email beforehand. Automatic commits remain local: no push or publishing.
 
 Do not unzip this pack over an in-progress checkout: use a separate folder. To upgrade ongoing work, read docs/UPGRADE_EXISTING_WORK.md; migration must preserve accepted records and evidence.
+
+## Local application (architecture 2.3)
+
+This checkout is a single Next.js 16 App Router app with Neon Auth and Neon PostgreSQL. Ranked play is disabled. There is no Vercel (or other) deployment from these sessions.
+
+Run locally after filling gitignored `.env` / `.env.local` (`DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`, `NEXT_PUBLIC_APP_URL=http://localhost:3000`):
+
+```
+node tools/apply-schema.mjs
+npm test
+npm run typecheck
+npm run build
+npx next start -p 3000
+```
+
+Schema files: `db/001_initial.sql`, `db/002_play.sql`, `db/003_community.sql`. Moderator roles are an owner decision, granted with `node --env-file=.env tools/grant-role.mjs <handle> moderator`.
+
+### Known limitations (observed)
+
+- Ranked queues stay off until balance testing. Casual Elo (K=32, start 1000) is not ranked play.
+- Timeouts are applied on the next match read or command, not by a wall-clock worker.
+- Email delivery to `.test` addresses was not observed; recovery was proven with an issued reset token.
+- Neon Auth was intermittently unreachable from this network; session lookup retries and answers 503 instead of 401.
+- Media uploads are out of scope. Posts and comments are plain text.
+- Private RNG, seat projections and the reference engine (`src/engine.mjs`) are unchanged; the app loads the engine at runtime because the bundler breaks its `import.meta.url` file read.
+- No secrets belong in Git. Automatic commits stay local.

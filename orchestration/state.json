@@ -117,9 +117,9 @@
     "S04": {
       "status": "active",
       "implementation_commit": null,
-      "checkpoint": null,
+      "checkpoint": "b641341aed08c222a54f6396799e894918b46c52",
       "blocker": null,
-      "next_action": "Read active prompt and create pre-session checkpoint."
+      "next_action": "Implement S04 prompt; commit checkpoint metadata with implementation."
     }
   }
 }

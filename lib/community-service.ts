@@ -16,7 +16,7 @@ import {
   type RelationshipAction,
   type ReportSubject,
 } from './community-policy.ts';
-import { canViewProfile, type Visibility } from './profile-policy.ts';
+import { canViewProfile, mutationGate, type Visibility } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
 const fail = <S extends 400 | 403 | 404 | 409 | 429>(status: S, error: string) => ({ status, body: { error } as const });
@@ -114,6 +114,8 @@ async function visiblePost(client: Queryable, viewerId: string, postId: unknown)
 }
 
 export async function createPost(client: Queryable, userId: string, input: unknown) {
+  const gate = await mutationGate(client, userId);
+  if (!gate.ok) return fail(403, gate.error);
   const parsed = parsePostInput(input);
   if (!parsed) return fail(400, `Write 1–2000 characters and choose who can see it`);
   if (await limited(client, userId, 'post.create', 10, 60)) return fail(429, 'You are posting too quickly; wait a minute');
@@ -255,6 +257,8 @@ export async function getRelationship(client: Queryable, viewerId: string, handl
 }
 
 export async function changeRelationship(client: Queryable, viewerId: string, handle: unknown, input: unknown) {
+  const gate = await mutationGate(client, viewerId);
+  if (!gate.ok) return fail(403, gate.error);
   const action = (input as Record<string, unknown> | null)?.action as RelationshipAction;
   if (!RELATIONSHIP_ACTIONS.includes(action)) return fail(400, 'Unknown action');
   const target = await userByHandle(client, handle);

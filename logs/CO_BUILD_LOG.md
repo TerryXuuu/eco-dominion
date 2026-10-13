@@ -35,3 +35,5 @@ Observed with two real browsers:
 - Ada's moderation queue showed the reports; hide made the post 404; dismiss closed the rest; the audit trail lists role.grant, report.create, moderation.hide and moderation.dismiss.
 
 Tests 53/53, typecheck and build pass. Details: `evidence/S03/browser-observation.log`. No deployment.
+
+13 October 2026, S04 (deadline 16:41Z, no extension): integrated validation. Service-level mutationGate refuses suspended queue, commands, posts and follows (HTTP already did). Mobile nav wraps; compose shows Publishing…; README records how to run locally and the known limitations. Observed: S02 replay step 59 is stable across repeat fetches with the opponent hand omitted; two browsers repeated post/like/comment/403-moderation/block; phone-sized nav wraps. Tests 55/55, typecheck and build pass. Source handoff only; no deployment.
