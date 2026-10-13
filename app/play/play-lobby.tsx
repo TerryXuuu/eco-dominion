@@ -83,6 +83,17 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
           <>
             <p>Share this code: <strong className="code" aria-label="Room code">{room.code}</strong></p>
             <p className="note" role="status">Waiting for your guest to join…</p>
+            <form
+              className="stack"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const handle = (event.currentTarget.elements.namedItem('invite') as HTMLInputElement).value;
+                run('/api/rooms/invite', 'POST', { code: room.code, handle }, () => undefined);
+              }}
+            >
+              <label>Invite a friend<input name="invite" placeholder="handle" minLength={3} maxLength={24} required /></label>
+              <button className="secondary" disabled={busy} type="submit">Send invite</button>
+            </form>
             <button className="secondary" disabled={busy} onClick={() => run<Room>(`/api/rooms/${room.code}`, 'DELETE', undefined, () => setRoom(null))}>Cancel room</button>
           </>
         ) : (

@@ -10,8 +10,10 @@ export function SiteHeader({ email }: { email?: string | null }) {
       <nav className="nav">
         <Link href="/rules">Rulings</Link>
         <Link href="/leaderboard">Leaderboard</Link>
+        {email && <Link href="/community">Community</Link>}
         {email && <Link href="/play">Play</Link>}
         {email && <Link href="/history">History</Link>}
+        {email && <Link href="/notifications">Inbox</Link>}
         {email ? <Link href="/profile">Profile</Link> : <Link href="/login">Log in</Link>}
         {!email && <Link href="/register">Register</Link>}
       </nav>

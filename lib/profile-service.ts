@@ -123,6 +123,10 @@ export async function viewProfile(client: Queryable, viewer: AuthIdentity | null
   const row = await loadByHandle(client, handle);
   if (!row) return { status: 404 as const, body: { error: 'Not found' } };
   const viewerRow = viewer ? await loadBySubject(client, viewer.subject) : null;
+  if (viewerRow && viewerRow.user_id !== row.user_id) {
+    const blockedBy = await client.query(`SELECT 1 FROM user_block WHERE blocker = $1 AND blocked = $2`, [row.user_id, viewerRow.user_id]);
+    if (blockedBy.rows.length) return { status: 404 as const, body: { error: 'Not found' } };
+  }
   const friends = viewerRow && viewerRow.user_id !== row.user_id ? await areFriends(client, viewerRow.user_id, row.user_id) : false;
   const allowed = canViewProfile({
     viewerId: viewerRow?.user_id ?? null,

@@ -151,3 +151,5 @@ button.card:disabled { cursor: not-allowed; opacity: 0.55; }
 .outcome.loss { color: var(--clay); }
 .table { width: 100%; border-collapse: collapse; background: var(--paper-2); border-radius: 1rem; overflow: hidden; }
 .table th, .table td { padding: 0.6rem 0.9rem; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.post-body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+textarea, select { width: 100%; font: inherit; padding: 0.6rem 0.7rem; border-radius: 0.6rem; border: 1px solid var(--line); background: var(--paper); color: inherit; }

@@ -1,30 +1,37 @@
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '../../components/site-header';
-import { auth, authConfigured, toIdentity } from '@/lib/auth';
-import { withTransaction } from '@/lib/db';
+import { getRelationship } from '@/lib/community-service';
+import { pageActor } from '@/lib/page-actor';
 import { viewProfile } from '@/lib/profile-service';
+import { PlayerActions } from './player-actions';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function PlayerPage({ params }: { params: Promise<{ handle: string }> }) {
-  if (!authConfigured) notFound();
   const { handle } = await params;
-  const { data } = await auth.getSession();
-  const viewer = data?.user?.email ? toIdentity(data.user) : null;
-  const result = await withTransaction((client) => viewProfile(client, viewer, handle));
-  if (result.status !== 200) notFound();
-  const profile = result.body;
+  const { email, suspended, data } = await pageActor(async (client, viewerId, identity) => {
+    const profile = await viewProfile(client, identity, handle);
+    if (profile.status !== 200) return { profile, relationship: null as Awaited<ReturnType<typeof getRelationship>> | null };
+    const relationship = profile.body.handle.toLowerCase() === handle.toLowerCase() && 'email' in profile.body
+      ? null
+      : await getRelationship(client, viewerId, handle);
+    return { profile, relationship };
+  });
+  if (data.profile.status !== 200) notFound();
+  const profile = data.profile.body;
+  const relationship = data.relationship && data.relationship.status === 200 ? data.relationship.body : null;
   return (
     <>
-      <SiteHeader email={data?.user?.email} />
-      <main className="shell">
-        <article className="panel" style={{ margin: '2rem 0 3rem' }}>
+      <SiteHeader email={email} />
+      <main className="shell stack">
+        <article className="panel stack">
           <p className="note">@{profile.handle}</p>
           <h1>{profile.displayName}</h1>
           <p>{profile.bio || 'No biography yet.'}</p>
-          {'email' in profile && typeof profile.email === 'string' && <p className="note">{profile.email}</p>}
         </article>
+        {relationship && <PlayerActions handle={profile.handle} initial={relationship} suspended={suspended} />}
+        {!relationship && <p className="note">This is you.</p>}
       </main>
     </>
   );

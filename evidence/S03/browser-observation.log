@@ -1,0 +1,23 @@
+S03 browser observation, 13 October 2026 (UTC). Production build (`next start`, port 3000) against real Neon Auth and the Neon database.
+No passwords are recorded here.
+
+Accounts
+- Ada Forest (@s01ada): signed in in the Cursor IDE browser. Owner decision: granted moderator via tools/grant-role.mjs (grant-moderator.log; roles moderator+player).
+- Two ordinary players registered in a separate headless Chrome (own profile): Cy Grove accounts s03-cy-<timestamp>@ecodominion.test. Bea's S01 password was not in this shell, so the second browser registered new player accounts instead of reusing Bea. They stay ordinary players.
+
+1. Ada published a public post from /community: "S03 public note from Ada Forest." (id d7e56440-fb72-4452-8b51-68dfeeac3df8, post-id.txt).
+
+2. Second browser (first Cy): found the post on /api/feed, opened the thread, PATCHed it, POSTed /api/moderation hide, POSTed a report, then blocked Ada.
+   - PATCH /api/posts/:id → 403 "Only the author can change this post"
+   - POST /api/moderation → 403 "Moderators only"
+   - POST /api/reports → 201
+   - After block: feedCount 0, Ada's post not visible, GET /api/posts/:id → 404
+   (bea-forbidden.json, bea-after-block.json, second-browser.log)
+
+3. Second browser (second Cy): liked and commented through the same authenticated browser session (POST /like 200, POST /comments 201, likes 2, comment "Hello from the second player."), then the same 403s, a second report 201, and a block that hid Ada again (second-player-engage.json).
+
+4. Ada opened /moderation: both reports were in the queue with the post body (moderation-queue.png). Hide on the first report closed it and made GET /api/posts/:id return 404 even to Ada (hidden, not just blocked). Dismiss closed the second report. Reload showed "No open reports." and an audit trail of moderation.dismiss, moderation.hide, both report.create rows, and the operator role.grant (audit-trail.png).
+
+5. Ada's /notifications showed 6 unread, including the two reports and the hide that affected her own post (inbox.png).
+
+db/003_community.sql applied to Neon; a rerun is a no-op (neon-schema-apply.log, neon-schema-rerun.log). No deployment.

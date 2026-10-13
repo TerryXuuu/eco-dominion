@@ -77,6 +77,11 @@ export async function joinRoom(client: Queryable, userId: string, rawCode: unkno
     return fail(409, 'This room is already full');
   }
   if (room.host_id === userId) return fail(409, 'Share the code with another player; you are the host');
+  const blocked = await client.query(
+    `SELECT 1 FROM user_block WHERE (blocker = $1 AND blocked = $2) OR (blocker = $2 AND blocked = $1)`,
+    [room.host_id, userId],
+  );
+  if (blocked.rows[0]) return fail(404, 'Room not found');
   for (const player of [String(room.host_id), userId]) {
     if (await activeMatchFor(client, player)) return fail(409, 'A player in this room is already in a match');
   }
@@ -108,9 +113,15 @@ export async function cancelRoom(client: Queryable, userId: string, rawCode: unk
 
 /** Serialised by a transaction-scoped advisory lock so two concurrent entries cannot both wait unmatched or double-match. */
 async function admit(client: Queryable, now: number) {
-  const waiting = await client.query(`SELECT user_id FROM queue_entry WHERE status = 'waiting' ORDER BY enqueued_at, user_id LIMIT 2`);
-  if (waiting.rows.length < 2) return;
-  const [first, second] = waiting.rows.map((row) => String(row.user_id));
+  const pair = await client.query(
+    `SELECT a.user_id AS first, b.user_id AS second
+     FROM queue_entry a JOIN queue_entry b ON (b.enqueued_at, b.user_id) > (a.enqueued_at, a.user_id)
+     WHERE a.status = 'waiting' AND b.status = 'waiting'
+       AND NOT EXISTS (SELECT 1 FROM user_block k WHERE (k.blocker = a.user_id AND k.blocked = b.user_id) OR (k.blocker = b.user_id AND k.blocked = a.user_id))
+     ORDER BY a.enqueued_at, a.user_id, b.enqueued_at, b.user_id LIMIT 1`,
+  );
+  if (!pair.rows[0]) return;
+  const [first, second] = [String(pair.rows[0].first), String(pair.rows[0].second)];
   const matchId = await createMatch(client, 'casual', first, second, now);
   await client.query(`UPDATE queue_entry SET status = 'matched', match_id = $3 WHERE user_id IN ($1, $2)`, [first, second, matchId]);
 }

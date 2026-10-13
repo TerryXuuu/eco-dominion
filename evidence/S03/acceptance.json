@@ -1,0 +1,53 @@
+{
+  "session": "S03",
+  "architecture_version": "2.3",
+  "summary": "Community on the existing Neon tables: paginated plain-text feed, posts/comments/likes, friends/follows/blocks, notifications, reports, moderator hide/restore/suspend and an audit trail. Ownership, visibility, blocks and roles are enforced server-side, including friend-only room invites and a suspended-user mutation gate. Ada (@s01ada) was granted moderator by owner decision. Two independent browsers posted, liked, commented and blocked; ordinary players got 403 on cross-user edits and moderation; reports reached the moderator queue; hide and dismiss wrote the audit trail.",
+  "changed_files": [
+    "app/api/comments/",
+    "app/api/feed/",
+    "app/api/moderation/",
+    "app/api/notifications/",
+    "app/api/players/[handle]/relationship/",
+    "app/api/posts/",
+    "app/api/relationships/",
+    "app/api/reports/",
+    "app/api/rooms/invite/",
+    "app/community/",
+    "app/components/site-header.tsx",
+    "app/globals.css",
+    "app/moderation/",
+    "app/notifications/",
+    "app/people/",
+    "app/players/[handle]/",
+    "app/play/play-lobby.tsx",
+    "app/profile/profile-form.tsx",
+    "db/003_community.sql",
+    "lib/api.ts",
+    "lib/community-policy.ts",
+    "lib/community-service.ts",
+    "lib/match-service.ts",
+    "lib/page-actor.ts",
+    "lib/profile-policy.ts",
+    "lib/profile-service.ts",
+    "proxy.ts",
+    "tests/session-S03.test.mjs",
+    "tools/apply-schema.mjs",
+    "tools/grant-role.mjs",
+    "tools/s03-second-browser.mjs",
+    "decisions/DECISIONS.md",
+    "logs/CO_BUILD_LOG.md"
+  ],
+  "automated_checks": [
+    { "name": "Full suite 53/53: reference engine, invariants, S01, S02 and S03 session tests", "status": "pass", "evidence": "evidence/S03/automated-checks.log" },
+    { "name": "S03 session tests: feed visibility and blocks, cross-user edits, ordinary-user moderation refusal, reports, hide, suspend, room invites, pagination (4/4)", "status": "pass", "evidence": "evidence/S03/automated-checks.log" },
+    { "name": "Production build", "status": "pass", "evidence": "evidence/S03/build.log" },
+    { "name": "db/003_community.sql applied to Neon; rerun is a no-op", "status": "pass", "evidence": "evidence/S03/neon-schema-rerun.log" }
+  ],
+  "manual_checks": [
+    { "name": "Two users create, comment and like, then block; blocked posts disappear", "status": "pass", "evidence": "evidence/S03/browser-observation.log" },
+    { "name": "Cross-user edit and ordinary-user moderation return 403", "status": "pass", "evidence": "evidence/S03/bea-forbidden.json" },
+    { "name": "Reports reach the moderator queue", "status": "pass", "evidence": "evidence/S03/moderation-queue.png" },
+    { "name": "Moderator hide and dismiss write the audit trail", "status": "pass", "evidence": "evidence/S03/audit-trail.png" }
+  ],
+  "blockers": []
+}

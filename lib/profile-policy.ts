@@ -59,6 +59,13 @@ export function canViewProfile(args: {
   return false;
 }
 
+/** Suspended accounts keep read access; only active accounts may change anything. */
+export function accountGate(status: string, mutation: boolean): { ok: true } | { ok: false; error: string } {
+  if (status === 'active') return { ok: true };
+  if (status === 'suspended') return mutation ? { ok: false, error: 'Your account is suspended; you can read but not make changes' } : { ok: true };
+  return { ok: false, error: 'Forbidden' };
+}
+
 export function sameOrigin(request: { headers: { get(name: string): string | null } }) {
   const origin = request.headers.get('origin');
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');

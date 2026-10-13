@@ -74,9 +74,9 @@
     "S03": {
       "status": "active",
       "implementation_commit": null,
-      "checkpoint": null,
+      "checkpoint": "10b8acfbb1aa602c7af24d267e14f4415232c099",
       "blocker": null,
-      "next_action": "Read active prompt and create pre-session checkpoint."
+      "next_action": "Implement S03 prompt; commit checkpoint metadata with implementation."
     },
     "S04": {
       "status": "pending",

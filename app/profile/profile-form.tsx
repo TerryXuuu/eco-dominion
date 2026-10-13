@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import type { OwnerProfile } from '@/lib/profile-policy';
 
@@ -38,6 +39,8 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
     <form className="form panel" onSubmit={onSubmit}>
       <h1>Your profile</h1>
       <p className="note">{profile.email} · {profile.roles.join(', ') || 'player'} · {profile.status}</p>
+      {profile.roles.some((role) => role === 'moderator' || role === 'admin') && <p><Link href="/moderation">Moderation queue</Link></p>}
+      {profile.status === 'suspended' && <p className="error">Your account is suspended; you can read but not make changes.</p>}
       <label>Handle<input name="handle" defaultValue={profile.handle} minLength={3} maxLength={24} required /></label>
       <label>Display name<input name="displayName" defaultValue={profile.displayName} maxLength={40} required /></label>
       <label>Bio<textarea name="bio" defaultValue={profile.bio} maxLength={280} /></label>

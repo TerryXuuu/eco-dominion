@@ -1,7 +1,7 @@
 import { auth, authConfigured, toIdentity } from './auth';
 import { withTransaction } from './db';
 import { privateJson } from './http';
-import { sameOrigin } from './profile-policy';
+import { accountGate, sameOrigin } from './profile-policy';
 import { provisionUser, type AuthIdentity, type Queryable } from './profile-service';
 
 type Handler = (client: Queryable, userId: string) => Promise<{ status: number; body: unknown }>;
@@ -43,7 +43,8 @@ export async function actorRoute(request: Request, handler: Handler, options: { 
   try {
     const result = await withTransaction(async (client) => {
       const user = await provisionUser(client, identity);
-      if (user.status !== 'active') return { status: 403, body: { error: 'Forbidden' } };
+      const gate = accountGate(user.status, options.mutation);
+      if (!gate.ok) return { status: 403, body: { error: gate.error } };
       return handler(client, user.user_id);
     });
     return privateJson(result.body, result.status);

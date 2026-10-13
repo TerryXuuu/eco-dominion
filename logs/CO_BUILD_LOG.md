@@ -27,3 +27,11 @@ Observation found two defects, both fixed:
 - An unreachable Neon Auth made signed-in players look signed out (401). Session lookup now retries, and the routes answer 503.
 
 Tests 49/49, typecheck and build pass. Details: `evidence/S02/browser-observation.log`. No deployment.
+
+13 October 2026, S03 (deadline 16:10Z, no extension): community is implemented on the existing profile, block, friend and role tables, with `db/003_community.sql` adding report resolution columns, moderation subjects and feed indexes. It includes a paginated plain-text feed, posts/comments/likes, friends/follows/blocks, in-app notifications, reports, moderator hide/restore/suspend and an audit trail. Server-side checks cover ownership, visibility, blocks, roles and room invites (friends only). Suspended users can read and cannot mutate. Ada (@s01ada) was granted moderator by owner decision; ordinary players stay players.
+
+Observed with two real browsers:
+- Ada published a public post. Independent player browsers liked and commented, were refused on cross-user edit (403) and moderation (403), filed reports (201), then blocked Ada and no longer saw the post (feed empty, thread 404).
+- Ada's moderation queue showed the reports; hide made the post 404; dismiss closed the rest; the audit trail lists role.grant, report.create, moderation.hide and moderation.dismiss.
+
+Tests 53/53, typecheck and build pass. Details: `evidence/S03/browser-observation.log`. No deployment.

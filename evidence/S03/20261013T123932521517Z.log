@@ -1,0 +1,13 @@
+$ node --test tests/session-S03.test.mjs
+✔ two users post, comment and like; friends-only posts stay off the public feed; blocks hide both directions (3760.6087ms)
+✔ cross-user edits are refused; ordinary players cannot moderate; reports reach a moderator and close on the audit trail (3115.684ms)
+✔ suspended users cannot mutate; blocks keep people out of the same queue or private room; only friends get room invites (3245.9308ms)
+✔ feed pages with a keyset cursor and never returns a blocked author (2834.2343ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23290.21

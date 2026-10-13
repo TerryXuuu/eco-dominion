@@ -10,5 +10,11 @@
     "deadline": 1791895354.3193126,
     "planned_hours": 4,
     "extensions": []
+  },
+  "S03": {
+    "started": 1791893457.176652,
+    "deadline": 1791907857.1766548,
+    "planned_hours": 4,
+    "extensions": []
   }
 }
