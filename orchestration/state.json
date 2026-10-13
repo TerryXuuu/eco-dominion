@@ -1,7 +1,7 @@
 {
   "architecture_version": "2.3",
   "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
-  "active": "S03",
+  "active": "S04",
   "sessions": {
     "S01": {
       "status": "accepted",
@@ -72,18 +72,54 @@
       ]
     },
     "S03": {
-      "status": "active",
-      "implementation_commit": null,
+      "status": "accepted",
+      "implementation_commit": "5b96fa204d512d2de3ee3ed25a4788ad5c28233a",
       "checkpoint": "10b8acfbb1aa602c7af24d267e14f4415232c099",
       "blocker": null,
-      "next_action": "Implement S03 prompt; commit checkpoint metadata with implementation."
+      "next_action": "Accepted; review evidence before next session.",
+      "test_receipt": "evidence\\S03\\20261013T124042113537Z.checks.json",
+      "changed_files": [
+        "app/api/comments/",
+        "app/api/feed/",
+        "app/api/moderation/",
+        "app/api/notifications/",
+        "app/api/players/[handle]/relationship/",
+        "app/api/posts/",
+        "app/api/relationships/",
+        "app/api/reports/",
+        "app/api/rooms/invite/",
+        "app/community/",
+        "app/components/site-header.tsx",
+        "app/globals.css",
+        "app/moderation/",
+        "app/notifications/",
+        "app/people/",
+        "app/players/[handle]/",
+        "app/play/play-lobby.tsx",
+        "app/profile/profile-form.tsx",
+        "db/003_community.sql",
+        "lib/api.ts",
+        "lib/community-policy.ts",
+        "lib/community-service.ts",
+        "lib/match-service.ts",
+        "lib/page-actor.ts",
+        "lib/profile-policy.ts",
+        "lib/profile-service.ts",
+        "proxy.ts",
+        "tests/session-S03.test.mjs",
+        "tools/apply-schema.mjs",
+        "tools/grant-role.mjs",
+        "tools/s03-second-browser.mjs",
+        "decisions/DECISIONS.md",
+        "logs/CO_BUILD_LOG.md"
+      ]
     },
     "S04": {
-      "status": "pending",
+      "status": "active",
       "implementation_commit": null,
       "checkpoint": null,
       "blocker": null,
-      "next_action": null
+      "next_action": "Read active prompt and create pre-session checkpoint."
     }
   }
 }
