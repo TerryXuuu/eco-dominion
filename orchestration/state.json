@@ -1,7 +1,7 @@
 {
   "architecture_version": "2.3",
   "architecture_sha256": "e0a2bdea23cf7e63d6fac9e575ba2c0b5f8a6a8393bd1f0656f119d077e19c38",
-  "active": "S02",
+  "active": "S03",
   "sessions": {
     "S01": {
       "status": "accepted",
@@ -34,18 +34,49 @@
       ]
     },
     "S02": {
-      "status": "active",
-      "implementation_commit": null,
+      "status": "accepted",
+      "implementation_commit": "1dd199102f69b590d6823017f622ae68d5a7b41f",
       "checkpoint": "258b83a04e6af8dd9e32ec32f77b871af4e86225",
       "blocker": null,
-      "next_action": "Implement S02 prompt; commit checkpoint metadata with implementation."
+      "next_action": "Accepted; review evidence before next session.",
+      "test_receipt": "evidence\\S02\\20261013T121039921274Z.checks.json",
+      "changed_files": [
+        "app/api/history/",
+        "app/api/leaderboard/",
+        "app/api/matches/",
+        "app/api/queue/",
+        "app/api/rooms/",
+        "app/components/call-api.ts",
+        "app/components/site-header.tsx",
+        "app/globals.css",
+        "app/history/",
+        "app/leaderboard/",
+        "app/matches/",
+        "app/play/",
+        "db/002_play.sql",
+        "lib/api.ts",
+        "lib/cards.ts",
+        "lib/engine.ts",
+        "lib/match-rules.ts",
+        "lib/match-service.ts",
+        "lib/page-actor.ts",
+        "src/engine.d.mts",
+        "next.config.ts",
+        "proxy.ts",
+        "tests/session-S02.test.mjs",
+        "tools/apply-schema.mjs",
+        "tools/s02-leak-check.mjs",
+        "tools/s02-second-browser.mjs",
+        "decisions/DECISIONS.md",
+        "logs/CO_BUILD_LOG.md"
+      ]
     },
     "S03": {
-      "status": "pending",
+      "status": "active",
       "implementation_commit": null,
       "checkpoint": null,
       "blocker": null,
-      "next_action": null
+      "next_action": "Read active prompt and create pre-session checkpoint."
     },
     "S04": {
       "status": "pending",

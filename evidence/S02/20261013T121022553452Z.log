@@ -1,0 +1,16 @@
+$ node --test tests/session-S02.test.mjs
+✔ casual queue admits two players atomically into one match with both seats (4064.0381ms)
+✔ views hide the opponent hand, seed and deck order; non-members get 404 (3014.9171ms)
+✔ duplicate commands apply once, reused IDs and stale versions are rejected, turn order is enforced (3232.3287ms)
+✔ a complete persisted casual match records one result, rates once, and replays from the private seed (4226.9813ms)
+✔ reconnecting restores the same seat view and unchanged polls are cheap (2537.4818ms)
+✔ private rooms admit exactly one guest (2808.9506ms)
+✔ R26 timeout policy: deterministic auto-actions, reset on own move, forfeit on the third consecutive timeout (2969.5683ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33381.6869

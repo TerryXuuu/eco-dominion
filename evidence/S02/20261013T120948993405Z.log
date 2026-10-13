@@ -1,0 +1,48 @@
+$ node --test tests/engine.test.mjs tests/invariants.test.mjs
+✔ Catalog exactly matches 74 main and 20 event cards (20.8724ms)
+✔ Seed gives identical initial state and first turn starts at one energy (5.244ms)
+✔ Opponent and spectator do not receive hidden deck hand seed or PRNG (2.7627ms)
+✔ Out of turn and stale commands rejected without mutating state (2.0684ms)
+✔ Repeated accepted command is idempotent (1.3146ms)
+✔ Illegal regions and underpayment rejected atomically (3.0918ms)
+✔ Species cannot spend reserve (0.6178ms)
+✔ Spells consume reserve before current energy (0.5211ms)
+✔ Mouse enter effect capped and same owner regional deer synergy (0.9699ms)
+✔ Synergies do not cross owners or regions (0.6791ms)
+✔ beetle enter changes stability exactly once (0.5663ms)
+✔ beaver enter changes stability exactly once (0.3419ms)
+✔ snake enter changes stability exactly once (0.3455ms)
+✔ oak enter changes stability exactly once (0.3576ms)
+✔ fox draws correct enter count (0.4171ms)
+✔ lizard draws correct enter count (5.7351ms)
+✔ heron draws correct enter count (0.5528ms)
+✔ ray draws correct enter count (0.4663ms)
+✔ guardian draws correct enter count (0.5219ms)
+✔ Algae targets arbitrary region stability and applies threshold aura (0.7945ms)
+✔ Bison requires valid enemy controller; absent target does not fabricate damage (1.3006ms)
+✔ Falcon aura includes self and stacks per source (0.6447ms)
+✔ Panther enters temporary enemy penalty and no remove (0.7127ms)
+✔ Guardian uniqueness is per player (2.1272ms)
+✔ Migration does not repeat enter effect and draws one (0.6775ms)
+✔ Fortify and infuse require control; bloom affects current units only (0.909ms)
+✔ Erode target ownership and destroy denial tracked (1.1249ms)
+✔ Break disables regional enemy synergies but not other passives (0.5699ms)
+✔ Snake ray immunity protects once against veil only (0.6426ms)
+✔ Steal drops reserve or seeded random discard if already zero (0.6228ms)
+✔ Charge capped at three (0.3625ms)
+✔ Hand overflow pauses command stream and requires exact owned discards (0.9719ms)
+✔ Nonpositive stability suppresses synergies and permanent penalty survives refresh (0.8454ms)
+✔ Domination stops at settlement controlling three stable regions (0.5269ms)
+✔ End score ignores temporary effects and ties are neutral (0.5209ms)
+✔ Shared discard reshuffles, exhausted deployable deck does not lose (0.3776ms)
+✔ All ten event branches execute and state remains serializable (4.8109ms)
+✔ End score removes temporary synergy suppression as well as numeric buffs (0.9285ms)
+✔ 100 seeded pass-only games conserve all cards, finish, and preserve projection privacy (1472.2318ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1703.5735

@@ -1,12 +1,12 @@
 # TASKS durable session ledger
 
-Architecture 2.3 | Active S02
+Architecture 2.3 | Active S03
 
 | Unit | Status | Acceptance | Implementation commit | Rollback checkpoint |
 |---|---|---|---|---|
 | S01 Accounts, rules and application foundation | accepted | Owner approval recorded; two users register/login with separate protected profiles; unauthorized access denied; schema integration and application build pass. | 1ab75aa52dc7f69a5f25082240994ca1495acfb1 | c3c6ada4ecbeb888b4a34d5487195af513f857b5 |
-| S02 Playable online PvP | active | Two authenticated browsers finish a complete persisted match; duplicate commands apply once; stale commands rejected; hidden information protected; reconnect restores correct state; result/rating applied once. | not accepted | 258b83a04e6af8dd9e32ec32f77b871af4e86225 |
-| S03 Community and user management | pending | Users interact through persistent feed and relationships; blocks/visibility respected; reports reach moderators; only authorized moderators can act; suspended users cannot mutate the platform. | not accepted | not checkpointed |
+| S02 Playable online PvP | accepted | Two authenticated browsers finish a complete persisted match; duplicate commands apply once; stale commands rejected; hidden information protected; reconnect restores correct state; result/rating applied once. | 1dd199102f69b590d6823017f622ae68d5a7b41f | 258b83a04e6af8dd9e32ec32f77b871af4e86225 |
+| S03 Community and user management | active | Users interact through persistent feed and relationships; blocks/visibility respected; reports reach moderators; only authorized moderators can act; suspended users cannot mutate the platform. | not accepted | not checkpointed |
 | S04 Integrated validation, fixes and handoff | pending | Local integrated platform passes observed core journeys, engine tests, integration tests, typecheck and production build; any unresolved critical issue blocks acceptance; source and ledgers are committed with no claimed deployment. | not accepted | not checkpointed |
 
 ## Evidence changed files and blockers
@@ -14,8 +14,8 @@ Architecture 2.3 | Active S02
 ### S01
 Evidence: evidence/S01/. Changed files: app/login/actions.ts, app/page.tsx, app/profile/actions.ts, app/recover/actions.ts, app/register/actions.ts, app/reset-password/actions.ts, app/rules/page.tsx, lib/auth.ts, lib/rulings.ts, tests/session-S01.test.mjs, tools/apply-schema.mjs, neon.ts, package.json, package-lock.json, .gitignore, decisions/OWNER_RULES_APPROVAL.md, decisions/DECISIONS.md, logs/CO_BUILD_LOG.md, .agents/, skills-lock.json. Blocker: none recorded. Next action: Accepted; review evidence before next session.. Tests: evidence\S01\20261013T084221358553Z.checks.json. Commit: 1ab75aa52dc7f69a5f25082240994ca1495acfb1.
 ### S02
-Evidence: evidence/S02/. Changed files: no accepted change recorded. Blocker: none recorded. Next action: Implement S02 prompt; commit checkpoint metadata with implementation.. Tests: not accepted. Commit: none.
+Evidence: evidence/S02/. Changed files: app/api/history/, app/api/leaderboard/, app/api/matches/, app/api/queue/, app/api/rooms/, app/components/call-api.ts, app/components/site-header.tsx, app/globals.css, app/history/, app/leaderboard/, app/matches/, app/play/, db/002_play.sql, lib/api.ts, lib/cards.ts, lib/engine.ts, lib/match-rules.ts, lib/match-service.ts, lib/page-actor.ts, src/engine.d.mts, next.config.ts, proxy.ts, tests/session-S02.test.mjs, tools/apply-schema.mjs, tools/s02-leak-check.mjs, tools/s02-second-browser.mjs, decisions/DECISIONS.md, logs/CO_BUILD_LOG.md. Blocker: none recorded. Next action: Accepted; review evidence before next session.. Tests: evidence\S02\20261013T121039921274Z.checks.json. Commit: 1dd199102f69b590d6823017f622ae68d5a7b41f.
 ### S03
-Evidence: evidence/S03/. Changed files: no accepted change recorded. Blocker: none recorded. Next action: await prerequisite. Tests: not accepted. Commit: none.
+Evidence: evidence/S03/. Changed files: no accepted change recorded. Blocker: none recorded. Next action: Read active prompt and create pre-session checkpoint.. Tests: not accepted. Commit: none.
 ### S04
 Evidence: evidence/S04/. Changed files: no accepted change recorded. Blocker: none recorded. Next action: await prerequisite. Tests: not accepted. Commit: none.
