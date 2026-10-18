@@ -20,7 +20,7 @@ export default async function ModerationPage() {
       <SiteHeader email={email} />
       <main className="shell stack">
         <h1>Moderation</h1>
-        <p className="note">Hide or restore posts and comments, suspend or restore accounts, and close reports. Every action is audited.</p>
+        <p className="note">This queue is for reported posts, comments and players. Hide or restore content, suspend or restore the reported account, and close the report. Accounts, role grants, casual ratings and match records are on the admin console.</p>
         <Queue reports={data.reports} />
         <h2>Audit trail</h2>
         <ol className="list">

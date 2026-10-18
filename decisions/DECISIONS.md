@@ -23,4 +23,8 @@ Architecture 2.0 replaces 1.0 for this edition at owner request: four 4-hour blo
 
 13 October 2026, owner decision (Terry) for S03: Ada Forest (@s01ada) is granted the moderator role so reports, hide/suspend actions and the audit trail can be observed in a real browser. Bea Meadow stays an ordinary player and is the account that must be refused when she tries to moderate. Roles are stored in `user_role` and granted only by the operator script `tools/grant-role.mjs`; there is no self-service promotion.
 
+18 October 2026, owner request (Terry): @tianruixu4 (tianruixu4@gmail.com) was granted admin and keeps player. Lynx (@unikengine, unik.engine@gmail.com) was created as player and admin. Role changes stay audited. No self-service promotion.
+
+18 October 2026, owner request (Terry): /admin is the admin console for accounts and registrations, moderator/admin grants, audited casual-rating adjustments, and read-only match records. /moderation stays the report queue. An admin cannot suspend themselves or remove their own admin role. Match boards stay private to the players. The public leaderboard still lists a player only after a casual game.
+
 13 October 2026, S04 handoff: no new owner rulings. Ranked play remains disabled. Limitations observed across S01–S04 are listed in README.md (no wall-clock timeout worker, no `.test` email delivery, intermittent Neon Auth, no media uploads, no Vercel publish). Source is the handoff; this is not a production release.

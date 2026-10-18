@@ -7,6 +7,7 @@ export function CardFace({ card, selected, onClick, disabled }: { card: CardInst
   const def = CARD_BY_ID[card.card];
   const body = (
     <>
+      <img className="card-art" src={`/cards/${def.id}.jpg`} alt="" />
       <span className="card-head">
         <strong>{titleOf(def.id)}</strong>
         {def.cost !== undefined && <span className="cost" title="Cost">{def.cost}</span>}
@@ -91,7 +92,12 @@ export function BoardView({ game, seat, players }: { game: Projection; seat: Sea
 
       <section className="panel stack">
         <h3>Event</h3>
-        {event ? <p><strong>{titleOf(event.id)}</strong> <span lang="zh">{event.name}</span> — {event.effect}</p> : <p className="note">No event yet.</p>}
+        {event ? (
+          <figure className="event-art">
+            <img src={`/cards/${event.id}.jpg`} alt="" />
+            <figcaption><strong>{titleOf(event.id)}</strong> <span lang="zh">{event.name}</span> — {event.effect}</figcaption>
+          </figure>
+        ) : <p className="note">No event yet.</p>}
         <details>
           <summary>Shared discard ({game.discard.length})</summary>
           <p className="note">{game.discard.map((card) => titleOf(card.card)).join(', ') || 'Empty'}</p>
