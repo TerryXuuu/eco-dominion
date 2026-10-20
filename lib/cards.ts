@@ -1,4 +1,4 @@
-import cards from '../data/cards.json';
+import cards from '../data/cards.json' with { type: 'json' };
 import type { CardDef, Region } from '../src/engine.mjs';
 
 /** Client-safe catalogue; the engine module reads files and stays server-side. */

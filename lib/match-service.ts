@@ -13,6 +13,7 @@ import {
   type AppliedCommand,
   type Snapshot,
 } from './match-rules.ts';
+import { COMPUTER_HANDLE, COMPUTER_USER_ID, chooseComputer } from './computer.ts';
 import { mutationGate } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
@@ -47,6 +48,36 @@ async function createMatch(client: Queryable, mode: Mode, seat0: string, seat1: 
   );
   await client.query(`INSERT INTO match_player (match_id, seat, user_id) VALUES ($1, 0, $2), ($1, 1, $3)`, [id, seat0, seat1]);
   return id;
+}
+
+async function ensureComputer(client: Queryable) {
+  await client.query(
+    `INSERT INTO app_user (id, auth_subject, email, handle, email_verified_at, status)
+     VALUES ($1, 'computer:grove', 'grove@ecodominion.invalid', $2, now(), 'active')
+     ON CONFLICT (id) DO NOTHING`,
+    [COMPUTER_USER_ID, COMPUTER_HANDLE],
+  );
+  await client.query(
+    `INSERT INTO profile (user_id, display_name, bio, visibility)
+     VALUES ($1, 'Grove', 'Practice opponent. This seat is unrated.', 'public')
+     ON CONFLICT (user_id) DO NOTHING`,
+    [COMPUTER_USER_ID],
+  );
+  await client.query(`INSERT INTO user_role (user_id, role) VALUES ($1, 'player') ON CONFLICT DO NOTHING`, [COMPUTER_USER_ID]);
+}
+
+/** Opens an unrated match against Grove and plays Grove's opening turn when Grove is first. */
+export async function startPractice(client: Queryable, userId: string, now: number) {
+  const gate = await mutationGate(client, userId);
+  if (!gate.ok) return fail(403, gate.error);
+  const active = await activeMatchFor(client, userId);
+  if (active) return fail(409, 'Finish your current match first', { matchId: active });
+  await ensureComputer(client);
+  const id = await createMatch(client, 'private', userId, COMPUTER_USER_ID, now);
+  let match = await loadMatch(client, id, true);
+  if (!match) return fail(503, 'Unable to start practice');
+  match = await advanceComputer(client, match, now);
+  return { status: 201, body: { matchId: match.id } };
 }
 
 // ---------- Private rooms ----------
@@ -184,6 +215,41 @@ async function seatOf(client: Queryable, matchId: string, userId: string): Promi
   return found.rows[0] ? (Number(found.rows[0].seat) as Seat) : null;
 }
 
+/** Plays Grove's whole turn, including choices, then stops on the human's clock. */
+async function advanceComputer(client: Queryable, match: MatchRow, now: number) {
+  if (match.status !== 'active') return match;
+  const bot = await seatOf(client, match.id, COMPUTER_USER_ID);
+  if (bot === null) return match;
+  let current = await loadMatch(client, match.id, true);
+  if (!current) return match;
+  current = await catchUp(client, current, now);
+  const applied: AppliedCommand[] = [];
+  let game = current.snapshot.game;
+  let deadline = current.deadline;
+  let previous: GameState = game;
+  const timeouts: [number, number] = [...current.snapshot.timeouts];
+  for (let step = 0; step < 40 && !game.result && clockOwner(game) === bot; step += 1) {
+    const command = chooseComputer(game, bot);
+    if (!command) break;
+    let next: GameState;
+    try {
+      next = applyCommand(game, bot, command);
+    } catch {
+      break;
+    }
+    applied.push({ seat: bot, command, auto: true });
+    timeouts[bot] = 0;
+    deadline = nextDeadline(previous, next, deadline, now);
+    previous = game;
+    game = next;
+  }
+  if (!applied.length) return current;
+  const snapshot: Snapshot = { ...current.snapshot, game, timeouts };
+  await recordCommands(client, current.id, applied, current.version, (item) => `computer:${item.command.id}`);
+  await persist(client, current, snapshot, deadline, now);
+  return { ...current, version: game.version, snapshot, deadline, status: game.result ? 'finished' : match.status };
+}
+
 const requestHash = (body: Record<string, unknown>) => createHash('sha256').update(JSON.stringify(body)).digest('hex');
 
 async function recordCommands(client: Queryable, matchId: string, applied: AppliedCommand[], startVersion: number, hashFor: (item: AppliedCommand) => string) {
@@ -303,6 +369,7 @@ export async function viewMatch(client: Queryable, userId: string, matchId: unkn
   if (match.status === 'active' && match.deadline !== null && match.deadline <= now) {
     match = await catchUp(client, (await loadMatch(client, matchId, true))!, now);
   }
+  match = await advanceComputer(client, match, now);
   if (knownVersion !== undefined && knownVersion === match.version) {
     return { status: 200, body: { unchanged: true, version: match.version, deadline: match.deadline === null ? null : new Date(match.deadline).toISOString() } };
   }
@@ -372,7 +439,8 @@ export async function submitCommand(client: Queryable, userId: string, matchId: 
   await recordCommands(client, match.id, [{ seat, command, auto: false }], match.version, () => hash);
   await persist(client, match, snapshot, deadline, now);
   const saved = { ...match, version: game.version, snapshot, deadline, status: game.result ? 'finished' : 'active' };
-  return { status: 200, body: { duplicate: false, receipt: { acceptedVersion: game.version }, view: await buildView(client, saved, seat, userId) } };
+  const advanced = await advanceComputer(client, saved, now);
+  return { status: 200, body: { duplicate: false, receipt: { acceptedVersion: advanced.version }, view: await buildView(client, advanced, seat, userId) } };
 }
 
 // ---------- History, leaderboard, replay ----------

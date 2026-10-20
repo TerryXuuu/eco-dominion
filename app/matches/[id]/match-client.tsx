@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Region, Seat } from '@/src/engine.mjs';
+import type { Seat } from '@/src/engine.mjs';
 import type { MatchView } from '@/lib/match-service';
-import { CARD_BY_ID, REGION_LABEL, REGION_ORDER, spellNeedsRegion, titleOf } from '@/lib/cards';
+import { CARD_BY_ID, REGION_LABEL, REGION_ORDER, titleOf } from '@/lib/cards';
+import { anyLegalPlay } from '@/lib/hand-actions';
 import { callApi } from '../../components/call-api';
-import { BoardView, CardFace, resultText } from './board-view';
+import { BoardView, resultText } from './board-view';
+import { HandFan } from './hand-fan';
 
 type Unchanged = { unchanged: true; version: number; deadline: string | null };
 type CommandReply = { duplicate: boolean; view: MatchView; error?: string; version?: number };
@@ -29,10 +31,8 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   const [view, setView] = useState(initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const [picks, setPicks] = useState<string[]>([]);
   const [species, setSpecies] = useState('');
-  const [target, setTarget] = useState('');
   const lastInput = useRef(Date.now());
   const versionRef = useRef(view.version);
   versionRef.current = view.version;
@@ -82,10 +82,8 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   }, [refresh]);
 
   useEffect(() => {
-    setSelected(null);
     setPicks([]);
     setSpecies('');
-    setTarget('');
   }, [view.version]);
 
   async function send(type: string, fields: Record<string, unknown> = {}) {
@@ -114,30 +112,16 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   const pending = game.pending;
   const myChoice = pending && pending.owner === seat ? pending : null;
   const myTurn = !finished && !pending && game.active === seat && (game.phase === 'deploy' || game.phase === 'tactics');
+  const canPlay = myTurn && anyLegalPlay(game, seat);
+  const practice = players.some((player) => player.seat !== seat && player.handle === 'grove');
   const clockMine = view.clockSeat === seat;
-  const selectedCard = selected ? hand.find((card) => card.uid === selected) : undefined;
-  const selectedDef = selectedCard ? CARD_BY_ID[selectedCard.card] : undefined;
-  const opponent = (1 - seat) as Seat;
-  const enemyControlled = REGION_ORDER.filter((region) => game.regions[region].controller === opponent);
   const myMovers = game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1);
-
-  function playTo(region?: Region) {
-    if (!selectedCard || !selectedDef) return;
-    const fields: Record<string, unknown> = { uid: selectedCard.uid };
-    if (region) fields.region = region;
-    if (selectedDef.id === 'bison' && enemyControlled.length) fields.target = target;
-    if (selectedDef.id === 'algae') fields.target = target;
-    if (selectedDef.id === 'migrate') fields.species = species;
-    send('play', fields);
-  }
-
-  const playable = (id: string) => (CARD_BY_ID[id].kind === 'species' ? game.phase === 'deploy' : game.phase === 'tactics');
 
   return (
     <div className="stack">
       <section className={`panel status ${clockMine && !finished ? 'your-move' : ''}`} aria-live="polite">
         <div>
-          <strong>{view.mode === 'casual' ? 'Casual match' : 'Private room'}</strong> · version {view.version} · phase {game.phase}
+          <strong>{practice ? 'Practice' : view.mode === 'casual' ? 'Casual match' : 'Private room'}</strong> · version {view.version} · phase {game.phase}
         </div>
         {finished ? (
           <div className="result">
@@ -151,7 +135,7 @@ export function MatchClient({ initial }: { initial: MatchView }) {
           </div>
         ) : (
           <div>
-            {clockMine ? (myChoice ? 'Your choice' : 'Your turn') : pending ? 'Opponent is choosing' : "Opponent's turn"}
+            {clockMine ? (myChoice ? 'Your choice' : 'Your turn') : pending ? (practice ? 'Grove is choosing' : 'Opponent is choosing') : practice ? 'Grove is playing' : "Opponent's turn"}
             {countdown !== null && <> · <span className={countdown <= 10 ? 'urgent' : ''}>{countdown}s</span> left</>}
             {view.timeouts[seat] > 0 && <> · your timeouts {view.timeouts[seat]}/3</>}
           </div>
@@ -164,16 +148,16 @@ export function MatchClient({ initial }: { initial: MatchView }) {
           {myChoice.kind === 'discard' && (
             <>
               <h3>Discard exactly {myChoice.count} card{myChoice.count === 1 ? '' : 's'}</h3>
-              <div className="hand">
-                {hand.map((card) => (
-                  <CardFace
-                    key={card.uid}
-                    card={card}
-                    selected={picks.includes(card.uid)}
-                    onClick={() => setPicks((current) => (current.includes(card.uid) ? current.filter((uid) => uid !== card.uid) : [...current, card.uid]))}
-                  />
-                ))}
-              </div>
+              <HandFan
+                game={game}
+                seat={seat}
+                busy={busy}
+                myTurn={false}
+                mode="discard"
+                picked={picks}
+                onPlay={() => undefined}
+                onToggle={(uid) => setPicks((current) => (current.includes(uid) ? current.filter((item) => item !== uid) : [...current, uid]))}
+              />
               <div className="row"><button disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>Discard selected</button></div>
             </>
           )}
@@ -212,42 +196,17 @@ export function MatchClient({ initial }: { initial: MatchView }) {
       {!myChoice && (
         <section className="panel stack" aria-label="Your hand">
           <h3>Your hand ({hand.length})</h3>
-          <div className="hand">
-            {hand.map((card) => (
-              <CardFace key={card.uid} card={card} selected={selected === card.uid} disabled={!myTurn || !playable(card.card)} onClick={() => setSelected(selected === card.uid ? null : card.uid)} />
-            ))}
-          </div>
-          {myTurn && selectedDef && (
-            <div className="stack play-panel">
-              {selectedDef.id === 'bison' && enemyControlled.length > 0 && (
-                <label>Bison target (enemy-controlled region)<select value={target} onChange={(event) => setTarget(event.target.value)}>
-                  <option value="">Choose…</option>
-                  {enemyControlled.map((region) => <option key={region} value={region}>{REGION_LABEL[region]}</option>)}
-                </select></label>
-              )}
-              {selectedDef.id === 'algae' && (
-                <label>Algae boosts which region?<select value={target} onChange={(event) => setTarget(event.target.value)}>
-                  <option value="">Choose…</option>
-                  {REGION_ORDER.map((region) => <option key={region} value={region}>{REGION_LABEL[region]}</option>)}
-                </select></label>
-              )}
-              {selectedDef.id === 'migrate' && (
-                <label>Species to move<select value={species} onChange={(event) => setSpecies(event.target.value)}>
-                  <option value="">Choose…</option>
-                  {myMovers.map((item) => <option key={item.uid} value={item.uid}>{titleOf(item.card)} in {REGION_LABEL[item.region]}</option>)}
-                </select></label>
-              )}
-              <div className="row">
-                {selectedDef.kind === 'species'
-                  ? selectedDef.regions!.map((region) => <button key={region} disabled={busy} onClick={() => playTo(region)}>Play to {REGION_LABEL[region]}</button>)
-                  : spellNeedsRegion(selectedDef.id)
-                    ? REGION_ORDER.map((region) => <button key={region} disabled={busy} onClick={() => playTo(region)}>Cast on {REGION_LABEL[region]}</button>)
-                    : <button disabled={busy} onClick={() => playTo()}>Cast {titleOf(selectedDef.id)}</button>}
-              </div>
-            </div>
-          )}
+          <HandFan
+            game={game}
+            seat={seat}
+            busy={busy}
+            myTurn={myTurn}
+            mode="play"
+            onPlay={(play) => send('play', play)}
+            onPass={() => send('pass')}
+          />
           <div className="row">
-            {myTurn && <button disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? 'End deployment' : 'End turn and settle'}</button>}
+            {canPlay && <button className="secondary" disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? 'End deployment' : 'End turn and settle'}</button>}
             {!finished && (
               <button className="secondary" disabled={busy} onClick={() => window.confirm('Concede this match?') && send('concede')}>Concede</button>
             )}

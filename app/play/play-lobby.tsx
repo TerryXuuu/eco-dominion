@@ -78,6 +78,11 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
         )}
       </section>
       <section className="panel stack">
+        <h2>Practice</h2>
+        <p className="note">Grove takes the other seat immediately. Practice is unrated, so your casual rating stays where it is.</p>
+        <button disabled={busy} onClick={() => run<{ matchId: string }>('/api/practice', 'POST', undefined, (data) => data.matchId && go(data.matchId))}>Play Grove</button>
+      </section>
+      <section className="panel stack">
         <h2>Private room</h2>
         {room?.status === 'open' ? (
           <>

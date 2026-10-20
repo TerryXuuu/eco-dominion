@@ -1,27 +1,50 @@
 import Link from 'next/link';
+import { AuthUnavailableError, currentIdentity } from '@/lib/api';
 import { withTransaction } from '@/lib/db';
+import { signOut } from '../profile/actions';
+import { BackLink } from './back-link';
 
-async function staffLinks(email?: string | null) {
-  if (!email) return { moderator: false, admin: false };
+export function roleLabel(roles: string[]) {
+  if (roles.includes('admin')) return 'Admin';
+  if (roles.includes('moderator')) return 'Moderator';
+  return 'Player';
+}
+
+function rolesOf(raw: unknown) {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === 'string') return raw.replace(/^\{|\}$/g, '').split(',').filter(Boolean);
+  return [];
+}
+
+async function signedInViewer() {
   try {
-    return await withTransaction(async (client) => {
+    const identity = await currentIdentity();
+    if (!identity) return { paused: false, viewer: null };
+    const viewer = await withTransaction(async (client) => {
       const found = await client.query(
-        `SELECT COALESCE(array_agg(r.role) FILTER (WHERE r.role IS NOT NULL), '{}') AS roles
-         FROM app_user u LEFT JOIN user_role r ON r.user_id = u.id
-         WHERE lower(u.email) = lower($1) GROUP BY u.id`,
-        [email],
+        `SELECT p.display_name,
+                COALESCE(array_agg(r.role) FILTER (WHERE r.role IS NOT NULL), '{}') AS roles
+         FROM app_user u
+         JOIN profile p ON p.user_id = u.id
+         LEFT JOIN user_role r ON r.user_id = u.id
+         WHERE u.auth_subject = $1
+         GROUP BY p.display_name`,
+        [identity.subject],
       );
-      const raw = found.rows[0]?.roles;
-      const roles = Array.isArray(raw) ? raw.map(String) : typeof raw === 'string' ? raw.replace(/^\{|\}$/g, '').split(',').filter(Boolean) : [];
-      return { moderator: roles.includes('moderator') || roles.includes('admin'), admin: roles.includes('admin') };
+      const row = found.rows[0];
+      if (!row) return { name: identity.name || identity.email, role: 'Player' };
+      return { name: String(row.display_name), role: roleLabel(rolesOf(row.roles)) };
     });
-  } catch {
-    return { moderator: false, admin: false };
+    return { paused: false, viewer };
+  } catch (error) {
+    if (error instanceof AuthUnavailableError) return { paused: true, viewer: null };
+    return { paused: true, viewer: null };
   }
 }
 
-export async function SiteHeader({ email }: { email?: string | null }) {
-  const staff = await staffLinks(email);
+/** `email` is ignored. The header reads the session itself so a page cannot forget who is signed in. */
+export async function SiteHeader(_legacy?: { email?: string | null }) {
+  const { paused, viewer } = await signedInViewer();
   return (
     <header className="shell topbar">
       <Link className="brand" href="/">
@@ -31,15 +54,28 @@ export async function SiteHeader({ email }: { email?: string | null }) {
       <nav className="nav">
         <Link href="/rules">Rulings</Link>
         <Link href="/leaderboard">Leaderboard</Link>
-        {email && <Link href="/community">Community</Link>}
-        {email && <Link href="/play">Play</Link>}
-        {email && <Link href="/history">History</Link>}
-        {email && <Link href="/notifications">Inbox</Link>}
-        {staff.moderator && <Link href="/moderation">Moderation</Link>}
-        {staff.admin && <Link href="/admin">Admin</Link>}
-        {email ? <Link href="/profile">Profile</Link> : <Link href="/login">Log in</Link>}
-        {!email && <Link href="/register">Register</Link>}
+        {viewer && <Link href="/community">Community</Link>}
+        {viewer && <Link href="/play">Play</Link>}
+        {viewer && <Link href="/history">History</Link>}
+        {viewer && <Link href="/notifications">Inbox</Link>}
+        {viewer?.role === 'Moderator' || viewer?.role === 'Admin' ? <Link href="/moderation">Moderation</Link> : null}
+        {viewer?.role === 'Admin' && <Link href="/admin">Admin</Link>}
+        {viewer ? <Link href="/profile">Profile</Link> : paused ? null : <Link href="/login">Log in</Link>}
+        {!viewer && !paused && <Link href="/register">Register</Link>}
+        {viewer && (
+          <span className="account">
+            <span className="who">
+              <strong>{viewer.name}</strong>
+              <span className="role">{viewer.role}</span>
+            </span>
+            <form action={signOut}>
+              <button className="secondary" type="submit">Log out</button>
+            </form>
+          </span>
+        )}
+        {paused && !viewer && <span className="role">Session paused</span>}
       </nav>
+      <BackLink />
     </header>
   );
 }
