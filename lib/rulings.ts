@@ -9,7 +9,7 @@ export const APPROVAL = {
 
 export const RULINGS: { id: string; summary: string }[] = [
   { id: 'R01', summary: 'Eight personal turns each, alternating, at most 16 settlements. Domination is checked at settlement, including the last turn; otherwise score after both counters reach 8.' },
-  { id: 'R02', summary: 'Energy maximum starts at 0. The first refresh sets it to 1. Personal turn t provides t energy, capped at 10.' },
+  { id: 'R02', summary: 'Opening turns refresh to at least 3 energy. Personal turn t provides max(3, t) energy, capped at 10.' },
   { id: 'R03', summary: 'The first player draws 0 on their first turn. The second player draws 2. Later turns draw 2. Opening hands stay at 5.' },
   { id: 'R04', summary: 'One event is revealed per personal turn, at most 16. The active player chooses before the opponent.' },
   { id: 'R05', summary: 'The owner discards the exact excess. Draw overflow is resolved before the event. Enter and spell overflow pause play immediately.' },

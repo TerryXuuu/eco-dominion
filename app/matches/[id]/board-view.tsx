@@ -35,8 +35,47 @@ export function resultText(game: Projection, seat: Seat, players: Player[]) {
   if (!game.result) return null;
   const { winner, reason, scores } = game.result;
   const headline = winner === null ? 'Draw' : winner === seat ? 'You won' : `${nameOf(players, winner)} won`;
-  const why = { score: 'on final score', domination: 'by domination', concession: 'by concession', timeout: 'on timeouts' }[reason] ?? reason;
+  const why = { score: 'on final score', domination: 'by domination', concession: 'by surrender', timeout: 'on timeouts' }[reason] ?? reason;
   return `${headline} ${why}${scores ? ` (${scores[seat]}–${scores[1 - seat]})` : ''}`;
+}
+
+function TableCard({ card }: { card: CardInstance }) {
+  const def = CARD_BY_ID[card.card];
+  return (
+    <figure className="table-card" title={`${titleOf(def.id)} · power ${def.power ?? '—'} · ${def.effect}`}>
+      <img src={`/cards/${def.id}.jpg`} alt={titleOf(def.id)} />
+      <figcaption>
+        <span>{titleOf(def.id)}</span>
+        {def.power !== undefined && <b>{def.power}</b>}
+      </figcaption>
+    </figure>
+  );
+}
+
+function EnergyOrb({ energy, max, reserve, label }: { energy: number; max: number; reserve: number; label: string }) {
+  return (
+    <div className="pod energy" aria-label={label}>
+      <span className="orb">{energy}</span>
+      <small>of {max}</small>
+      <span className="pips" aria-label={`Reserve ${reserve}`}>
+        {[0, 1, 2].map((pip) => <i key={pip} className={pip < reserve ? 'on' : ''} />)}
+      </span>
+    </div>
+  );
+}
+
+function CardPile({ count, label, face }: { count: number; label: string; face?: string }) {
+  return (
+    <div className="pod pile-pod" aria-label={label}>
+      <span className="pile">
+        <i />
+        <i />
+        {face ? <img src={face} alt="" /> : <i className="back" />}
+      </span>
+      <b>{count}</b>
+      <small>{label}</small>
+    </div>
+  );
 }
 
 export function BoardView({ game, seat, players }: { game: Projection; seat: Seat; players: Player[] }) {
@@ -45,64 +84,67 @@ export function BoardView({ game, seat, players }: { game: Projection; seat: Sea
   const them = game.players[opponent];
   const event = game.event ? CARD_BY_ID[game.event] : null;
   return (
-    <div className="stack">
-      <section className="panel seat-strip" aria-label="Opponent">
-        <strong>{nameOf(players, opponent)}</strong>
-        <span>Turn {them.turns}/8</span>
-        <span>Energy {them.energy}/{them.max}</span>
-        <span>Reserve {them.reserve}</span>
-        <span>{them.handCount} cards in hand</span>
-      </section>
+    <div className="stadium">
+      <div className="stadium-rail theirs">
+        <EnergyOrb energy={them.energy} max={them.max} reserve={them.reserve} label={`${nameOf(players, opponent)} energy`} />
+        <div className="rail-name">
+          <strong>{nameOf(players, opponent)}</strong>
+          <span>Turn {them.turns}/8</span>
+        </div>
+        <CardPile count={them.handCount} label="Hand" />
+      </div>
 
-      <section className="regions" aria-label="Regions">
-        {REGION_ORDER.map((region) => {
-          const info = game.regions[region];
-          const holder = info.controller === null ? 'Neutral' : info.controller === seat ? 'You control' : 'Opponent controls';
-          return (
-            <article key={region} className={`panel region ${info.controller === seat ? 'mine' : info.controller === opponent ? 'theirs' : ''}`}>
-              <h3>{REGION_LABEL[region]}</h3>
-              <p className="region-stats">
-                Stability <strong>{info.stability}</strong> · {holder}
-              </p>
-              <p className="region-stats">
-                Power: you {info.power[seat]} · them {info.power[opponent]}
-                {(info.penalty[seat] > 0 || info.penalty[opponent] > 0) && ` · penalty ${info.penalty[seat]}/${info.penalty[opponent]}`}
-              </p>
-              {[opponent, seat].map((owner) => {
-                const species = game.board.filter((item) => item.region === region && item.owner === owner);
-                return (
-                  <div key={owner} className="side">
-                    <span className="side-label">{owner === seat ? 'Yours' : 'Theirs'}</span>
-                    {species.length ? species.map((item) => <CardFace key={item.uid} card={item} />) : <span className="note">—</span>}
-                  </div>
-                );
-              })}
-            </article>
-          );
-        })}
-      </section>
+      <div className="felt" aria-label="Regions">
+        <div className="felt-center">
+          {event ? (
+            <figure className="event-float">
+              <img src={`/cards/${event.id}.jpg`} alt="" />
+              <figcaption>
+                <strong>{titleOf(event.id)}</strong>
+                <span lang="zh">{event.name}</span>
+                <span>{event.effect}</span>
+              </figcaption>
+            </figure>
+          ) : <p className="event-float empty">No event yet</p>}
+          <details className="discard-float">
+            <summary>Discard {game.discard.length}</summary>
+            <p>{game.discard.map((card) => titleOf(card.card)).join(', ') || 'Empty'}</p>
+          </details>
+        </div>
+        <div className="lanes">
+          {REGION_ORDER.map((region) => {
+            const info = game.regions[region];
+            const holder = info.controller === null ? 'Neutral' : info.controller === seat ? 'You' : 'Opponent';
+            return (
+              <article key={region} className={`lane ${info.controller === seat ? 'mine' : info.controller === opponent ? 'theirs' : ''}`}>
+                <div className="lane-row">
+                  {game.board.filter((item) => item.region === region && item.owner === opponent).map((item) => <TableCard key={item.uid} card={item} />)}
+                  {game.board.every((item) => item.region !== region || item.owner !== opponent) && <span className="slot" aria-hidden="true" />}
+                </div>
+                <header>
+                  <strong>{REGION_LABEL[region]}</strong>
+                  <span>Stability {info.stability} · {holder}</span>
+                  <span>You {info.power[seat]} · opponent {info.power[opponent]}{(info.penalty[seat] > 0 || info.penalty[opponent] > 0) ? ` · penalty ${info.penalty[seat]}/${info.penalty[opponent]}` : ''}</span>
+                </header>
+                <div className="lane-row">
+                  {game.board.filter((item) => item.region === region && item.owner === seat).map((item) => <TableCard key={item.uid} card={item} />)}
+                  {game.board.every((item) => item.region !== region || item.owner !== seat) && <span className="slot" aria-hidden="true" />}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
 
-      <section className="panel seat-strip" aria-label="You">
-        <strong>{nameOf(players, seat)} (you)</strong>
-        <span>Turn {me.turns}/8</span>
-        <span>Energy {me.energy}/{me.max}</span>
-        <span>Reserve {me.reserve}</span>
-        <span>Deck {game.deckCount} · events left {game.eventDeckCount}</span>
-      </section>
-
-      <section className="panel stack">
-        <h3>Event</h3>
-        {event ? (
-          <figure className="event-art">
-            <img src={`/cards/${event.id}.jpg`} alt="" />
-            <figcaption><strong>{titleOf(event.id)}</strong> <span lang="zh">{event.name}</span> — {event.effect}</figcaption>
-          </figure>
-        ) : <p className="note">No event yet.</p>}
-        <details>
-          <summary>Shared discard ({game.discard.length})</summary>
-          <p className="note">{game.discard.map((card) => titleOf(card.card)).join(', ') || 'Empty'}</p>
-        </details>
-      </section>
+      <div className="stadium-rail mine">
+        <EnergyOrb energy={me.energy} max={me.max} reserve={me.reserve} label="Your energy" />
+        <div className="rail-name">
+          <strong>{nameOf(players, seat)}</strong>
+          <span>You · turn {me.turns}/8</span>
+        </div>
+        <CardPile count={game.deckCount} label="Deck" face="/brand/logo.jpg" />
+        <CardPile count={game.eventDeckCount} label="Events" />
+      </div>
     </div>
   );
 }

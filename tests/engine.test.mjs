@@ -6,7 +6,7 @@ const card=(s,id)=>{const x={uid:`test-${id}-${s.players[0].hand.length}`,card:i
 const cmd=(s,type,extra={})=>({id:`cmd-${s.version}`,version:s.version,type,...extra});
 const play=(s,id,r,extra={})=>apply(s,0,cmd(s,'play',{uid:card(s,id),region:r,...extra}));
 test('Catalog exactly matches 74 main and 20 event cards',()=>{assert.equal(CARDS.length,36);assert.equal(CARDS.filter(c=>c.kind!=='event').reduce((n,c)=>n+c.copies,0),74);assert.equal(CARDS.filter(c=>c.kind==='event').reduce((n,c)=>n+c.copies,0),20);assert.equal(new Set(CARDS.map(c=>c.id)).size,36);});
-test('Seed gives identical initial state and first turn starts at one energy',()=>{assert.deepEqual(newGame(4),newGame(4));const s=newGame(4);assert.equal(s.players[s.first].energy,1);assert.equal(s.players[s.first].hand.length<=7,true);});
+test('Seed gives identical initial state and the first turn opens on three energy',()=>{assert.deepEqual(newGame(4),newGame(4));const s=newGame(4);assert.equal(s.players[s.first].energy,3);assert.equal(s.players[s.first].max,3);assert.equal(s.players[s.first].hand.length<=7,true);});
 test('Opponent and spectator do not receive hidden deck hand seed or PRNG',()=>{const s=newGame(42);for(const seat of [0,1,null]){const v=project(s,seat);assert.equal('rng'in v,false);assert.equal('deck'in v,false);for(let p=0;p<2;p++)assert.equal('hand'in v.players[p],p===seat);} });
 test('Out of turn and stale commands rejected without mutating state',()=>{const s=setup(),copy=structuredClone(s);assert.throws(()=>apply(s,1,cmd(s,'pass')),/turn/);assert.throws(()=>apply(s,0,{...cmd(s,'pass'),version:99}),/Stale/);assert.deepEqual(s,copy);});
 test('Repeated accepted command is idempotent',()=>{const s=setup(),c=cmd(s,'pass'),a=apply(s,0,c);assert.deepEqual(apply(a,0,c),a);});

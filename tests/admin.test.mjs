@@ -12,6 +12,7 @@ async function setup() {
   await db.exec(readFileSync(new URL('../db/001_initial.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/002_play.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/003_community.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../db/004_room_finished.sql', import.meta.url), 'utf8'));
   const ids = [];
   for (const person of people) ids.push((await provisionUser(db, person)).user_id);
   await db.query(`INSERT INTO user_role (user_id, role) VALUES ($1, 'moderator'), ($1, 'admin')`, [ids[0]]);

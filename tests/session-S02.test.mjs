@@ -25,6 +25,7 @@ async function setup() {
   const db = new PGlite();
   await db.exec(readFileSync(new URL('../db/001_initial.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/002_play.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../db/004_room_finished.sql', import.meta.url), 'utf8'));
   await db.query(`INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at) VALUES ('digital-1.0', 'test', '{}', '{"ranked":false}', now())`);
   const ids = [];
   for (const person of people) ids.push((await provisionUser(db, person)).user_id);
@@ -274,6 +275,7 @@ test('R26 timeout policy: deterministic auto-actions, reset on own move, forfeit
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM rating_change`)).rows[0].n, 0, 'private rooms are unrated');
   const result = (await db.query(`SELECT reason FROM match_result WHERE match_id = $1`, [body.matchId])).rows[0];
   assert.equal(result.reason, 'timeout');
+  assert.equal((await db.query(`SELECT status FROM room WHERE match_id = $1`, [body.matchId])).rows[0].status, 'finished');
 
   const late = expire(openSnapshot(5), T0, T0 + 10 * TURN_MS, randomUUID);
   assert.equal(late.snapshot.game.result.reason, 'timeout');
@@ -287,4 +289,9 @@ test('R26 timeout policy: deterministic auto-actions, reset on own move, forfeit
   assert.equal(conceded.status, 200);
   assert.equal(conceded.body.view.game.result.reason, 'concession');
   assert.equal(conceded.body.view.game.result.winner, 1 - offTurn.seat);
+  assert.equal((await db.query(`SELECT status FROM room WHERE match_id = $1`, [second.body.matchId])).rows[0].status, 'finished');
+  assert.equal((await tx(db, () => getRoom(db, ada, room2.body.code))).body.status, 'finished');
+  assert.equal((await tx(db, () => joinRoom(db, ids[2], room2.body.code, T0 + 6))).status, 409);
+  const nextRoom = await tx(db, () => createRoom(db, ada));
+  assert.equal(nextRoom.status, 201);
 });

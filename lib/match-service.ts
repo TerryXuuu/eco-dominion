@@ -104,6 +104,10 @@ export async function joinRoom(client: Queryable, userId: string, rawCode: unkno
   const found = await client.query(`SELECT id, host_id, guest_id, status, match_id FROM room WHERE code = $1 FOR UPDATE`, [code]);
   const room = found.rows[0];
   if (!room || room.status === 'cancelled') return fail(404, 'Room not found');
+  if (room.status === 'finished') {
+    if (room.host_id === userId || room.guest_id === userId) return { status: 200, body: { code, status: 'finished', matchId: room.match_id ? String(room.match_id) : null } };
+    return fail(409, 'This room has finished');
+  }
   if (room.status === 'started') {
     if (room.host_id === userId || room.guest_id === userId) return { status: 200, body: { code, status: 'started', matchId: String(room.match_id) } };
     return fail(409, 'This room is already full');
@@ -279,6 +283,7 @@ async function finish(client: Queryable, match: MatchRow, game: GameState, now: 
     [match.id, result.winner, result.reason, scores[0], scores[1], new Date(now).toISOString()],
   );
   await client.query(`UPDATE match SET status = 'finished', finished_at = $2 WHERE id = $1`, [match.id, new Date(now).toISOString()]);
+  await client.query(`UPDATE room SET status = 'finished' WHERE match_id = $1 AND status = 'started'`, [match.id]);
   if (!inserted.rows[0] || match.mode !== 'casual') return;
   const players = await client.query(`SELECT seat, user_id FROM match_player WHERE match_id = $1 ORDER BY seat`, [match.id]);
   const ids = players.rows.map((row) => String(row.user_id));

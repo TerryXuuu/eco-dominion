@@ -40,8 +40,8 @@ test('engine hides hands and follows the corrected energy and final-turn rulings
   const second = 1 - first;
   assert.equal(opened.rules, 'digital-1.0-draft');
   assert.equal(opened.players[first].turns, 1);
-  assert.equal(opened.players[first].max, 1);
-  assert.equal(opened.players[first].energy, 1);
+  assert.equal(opened.players[first].max, 3);
+  assert.equal(opened.players[first].energy, 3);
   assert.equal(opened.players[second].max, 0);
   assert.equal(opened.players[second].energy, 0);
   assert.equal(project(opened, second).players[first].hand, undefined);

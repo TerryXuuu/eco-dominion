@@ -6,7 +6,7 @@ import { pageActor } from '@/lib/page-actor';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const REASON: Record<string, string> = { score: 'final score', domination: 'domination', concession: 'concession', timeout: 'timeouts' };
+const REASON: Record<string, string> = { score: 'final score', domination: 'domination', concession: 'surrender', timeout: 'timeouts' };
 
 export default async function HistoryPage() {
   const { email, data } = await pageActor((client, userId) => history(client, userId));

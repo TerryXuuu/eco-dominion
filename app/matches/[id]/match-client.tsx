@@ -7,8 +7,9 @@ import type { MatchView } from '@/lib/match-service';
 import { CARD_BY_ID, REGION_LABEL, REGION_ORDER, titleOf } from '@/lib/cards';
 import { anyLegalPlay } from '@/lib/hand-actions';
 import { callApi } from '../../components/call-api';
-import { BoardView, resultText } from './board-view';
+import { BoardView } from './board-view';
 import { HandFan } from './hand-fan';
+import { MatchReport } from './match-report';
 
 type Unchanged = { unchanged: true; version: number; deadline: string | null };
 type CommandReply = { duplicate: boolean; view: MatchView; error?: string; version?: number };
@@ -33,6 +34,7 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   const [busy, setBusy] = useState(false);
   const [picks, setPicks] = useState<string[]>([]);
   const [species, setSpecies] = useState('');
+  const [summaryOpen, setSummaryOpen] = useState(true);
   const lastInput = useRef(Date.now());
   const versionRef = useRef(view.version);
   versionRef.current = view.version;
@@ -56,6 +58,7 @@ export function MatchClient({ initial }: { initial: MatchView }) {
         return;
       }
       await refresh();
+      if (stopped) return;
       const idle = Date.now() - lastInput.current > IDLE_AFTER_MS;
       timer = setTimeout(loop, idle ? IDLE_POLL_MS : ACTIVE_POLL_MS);
     };
@@ -105,8 +108,6 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   }
 
   const { game, seat, players } = view;
-  const me = game.players[seat];
-  const hand = me.hand ?? [];
   const countdown = useCountdown(view.deadline);
   const finished = view.status === 'finished' || Boolean(game.result);
   const pending = game.pending;
@@ -117,102 +118,116 @@ export function MatchClient({ initial }: { initial: MatchView }) {
   const clockMine = view.clockSeat === seat;
   const myMovers = game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1);
 
+  async function newGame() {
+    if (!practice) {
+      window.location.assign('/play');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    const reply = await callApi<{ matchId?: string; error?: string }>('/api/practice', { method: 'POST' });
+    if (reply.ok && reply.data.matchId && reply.data.matchId !== view.id) {
+      window.location.assign(`/matches/${reply.data.matchId}`);
+      return;
+    }
+    setBusy(false);
+    setError(reply.data.error ?? 'Could not start a new game');
+  }
+
   return (
-    <div className="stack">
-      <section className={`panel status ${clockMine && !finished ? 'your-move' : ''}`} aria-live="polite">
-        <div>
-          <strong>{practice ? 'Practice' : view.mode === 'casual' ? 'Casual match' : 'Private room'}</strong> · version {view.version} · phase {game.phase}
-        </div>
-        {finished ? (
-          <div className="result">
-            <strong>{resultText(game, seat, players)}</strong>
-            {view.rating && <span> · casual rating {view.rating.before} → {view.rating.after}</span>}
-            <div className="row">
-              <Link className="button" href={`/matches/${view.id}/replay`}>Watch replay</Link>
-              <Link className="button secondary" href="/history">History</Link>
-              <Link className="button secondary" href="/play">Play again</Link>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {clockMine ? (myChoice ? 'Your choice' : 'Your turn') : pending ? (practice ? 'Grove is choosing' : 'Opponent is choosing') : practice ? 'Grove is playing' : "Opponent's turn"}
-            {countdown !== null && <> · <span className={countdown <= 10 ? 'urgent' : ''}>{countdown}s</span> left</>}
-            {view.timeouts[seat] > 0 && <> · your timeouts {view.timeouts[seat]}/3</>}
+    <>
+      <header className="hud">
+        <Link href="/play">Leave</Link>
+        <strong>{practice ? 'Practice' : view.mode === 'casual' ? 'Casual' : 'Private'}</strong>
+        <span>
+          {finished ? 'Match over' : clockMine ? (myChoice ? 'Your choice' : 'Your turn') : pending ? (practice ? 'Grove is choosing' : 'Opponent is choosing') : practice ? 'Grove is playing' : "Opponent's turn"}
+          {!finished && <> · {game.phase}</>}
+          {countdown !== null && !finished && <> · <span className={countdown <= 10 ? 'urgent' : ''}>{countdown}s</span></>}
+          {view.timeouts[seat] > 0 && !finished && <> · timeouts {view.timeouts[seat]}/3</>}
+        </span>
+        <span className="hud-actions">
+          {finished && (
+            <>
+              <button type="button" disabled={busy} onClick={() => void newGame()}>New game</button>
+              <button type="button" className="secondary" onClick={() => setSummaryOpen((open) => !open)}>{summaryOpen ? 'Close summary' : 'Summary'}</button>
+            </>
+          )}
+          {canPlay && <button disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? 'End deployment' : 'Settle'}</button>}
+          {!finished && <button className="secondary" disabled={busy} onClick={() => window.confirm('Surrender this match? The other player wins.') && send('concede')}>Surrender</button>}
+        </span>
+      </header>
+      {error && <p className="hud-error" role="alert">{error}</p>}
+
+      <div className="table-stage">
+        <BoardView game={game} seat={seat} players={players} />
+
+        {finished && summaryOpen && (
+          <div className="table-overlay">
+            <MatchReport game={game} seat={seat} players={players} timeouts={view.timeouts} rating={view.rating} matchId={view.id} onClose={() => setSummaryOpen(false)} />
           </div>
         )}
-        {error && <p className="error" role="alert">{error}</p>}
-      </section>
 
-      {myChoice && (
-        <section className="panel stack choice" aria-label="Your choice">
-          {myChoice.kind === 'discard' && (
-            <>
-              <h3>Discard exactly {myChoice.count} card{myChoice.count === 1 ? '' : 's'}</h3>
-              <HandFan
-                game={game}
-                seat={seat}
-                busy={busy}
-                myTurn={false}
-                mode="discard"
-                picked={picks}
-                onPlay={() => undefined}
-                onToggle={(uid) => setPicks((current) => (current.includes(uid) ? current.filter((item) => item !== uid) : [...current, uid]))}
-              />
-              <div className="row"><button disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>Discard selected</button></div>
-            </>
-          )}
-          {myChoice.kind === 'rest' && (
-            <>
-              <h3>Rest: add 2 stability to a region you control</h3>
-              <div className="row">{(myChoice.options ?? []).map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
-            </>
-          )}
-          {myChoice.kind === 'invasion' && (
-            <>
-              <h3>Invasion: choose the contested region</h3>
-              <div className="row">{REGION_ORDER.map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
-            </>
-          )}
-          {myChoice.kind === 'migration' && (
-            <>
-              <h3>Migration: you may move one species</h3>
-              <label>Species<select value={species} onChange={(event) => setSpecies(event.target.value)}>
-                <option value="">Choose…</option>
-                {myMovers.map((item) => <option key={item.uid} value={item.uid}>{titleOf(item.card)} in {REGION_LABEL[item.region]}</option>)}
-              </select></label>
-              <div className="row">
-                {species && CARD_BY_ID[myMovers.find((item) => item.uid === species)!.card].regions!
-                  .filter((region) => region !== myMovers.find((item) => item.uid === species)!.region)
-                  .map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { species, region })}>Move to {REGION_LABEL[region]}</button>)}
-                <button className="secondary" disabled={busy} onClick={() => send('choose', { skip: true })}>Skip</button>
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      <BoardView game={game} seat={seat} players={players} />
-
-      {!myChoice && (
-        <section className="panel stack" aria-label="Your hand">
-          <h3>Your hand ({hand.length})</h3>
-          <HandFan
-            game={game}
-            seat={seat}
-            busy={busy}
-            myTurn={myTurn}
-            mode="play"
-            onPlay={(play) => send('play', play)}
-            onPass={() => send('pass')}
-          />
-          <div className="row">
-            {canPlay && <button className="secondary" disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? 'End deployment' : 'End turn and settle'}</button>}
-            {!finished && (
-              <button className="secondary" disabled={busy} onClick={() => window.confirm('Concede this match?') && send('concede')}>Concede</button>
+        {myChoice && myChoice.kind !== 'discard' && (
+          <section className="choice-bar" aria-label="Your choice">
+            {myChoice.kind === 'rest' && (
+              <>
+                <strong>Rest: add 2 stability</strong>
+                <div className="row">{(myChoice.options ?? []).map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
+              </>
             )}
-          </div>
-        </section>
-      )}
-    </div>
+            {myChoice.kind === 'invasion' && (
+              <>
+                <strong>Invasion: choose the region</strong>
+                <div className="row">{REGION_ORDER.map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
+              </>
+            )}
+            {myChoice.kind === 'migration' && (
+              <>
+                <strong>Migration</strong>
+                <label>Species<select value={species} onChange={(event) => setSpecies(event.target.value)}>
+                  <option value="">Choose…</option>
+                  {myMovers.map((item) => <option key={item.uid} value={item.uid}>{titleOf(item.card)} in {REGION_LABEL[item.region]}</option>)}
+                </select></label>
+                <div className="row">
+                  {species && CARD_BY_ID[myMovers.find((item) => item.uid === species)!.card].regions!
+                    .filter((region) => region !== myMovers.find((item) => item.uid === species)!.region)
+                    .map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { species, region })}>Move to {REGION_LABEL[region]}</button>)}
+                  <button className="secondary" disabled={busy} onClick={() => send('choose', { skip: true })}>Skip</button>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
+        <div className="hand-dock">
+          {myChoice?.kind === 'discard' ? (
+            <HandFan
+              game={game}
+              seat={seat}
+              busy={busy}
+              myTurn={false}
+              mode="discard"
+              dock
+              prompt={<p className="dock-prompt">Discard exactly {myChoice.count}</p>}
+              extra={<button type="button" className="dock-act" disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>Discard selected</button>}
+              picked={picks}
+              onPlay={() => undefined}
+              onToggle={(uid) => setPicks((current) => (current.includes(uid) ? current.filter((item) => item !== uid) : [...current, uid]))}
+            />
+          ) : !myChoice && (
+            <HandFan
+              game={game}
+              seat={seat}
+              busy={busy}
+              myTurn={myTurn}
+              mode="play"
+              dock
+              onPlay={(play) => send('play', play)}
+              onPass={() => send('pass')}
+            />
+          )}
+        </div>
+      </div>
+    </>
   );
 }
