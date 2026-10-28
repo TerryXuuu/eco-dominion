@@ -64,9 +64,9 @@ function EnergyOrb({ energy, max, reserve, label }: { energy: number; max: numbe
   );
 }
 
-function CardPile({ count, label, face }: { count: number; label: string; face?: string }) {
+function CardPile({ count, label, face, className }: { count: number; label: string; face?: string; className?: string }) {
   return (
-    <div className="pod pile-pod" aria-label={label}>
+    <div className={`pod pile-pod${className ? ` ${className}` : ''}`} aria-label={label}>
       <span className="pile">
         <i />
         <i />
@@ -85,15 +85,16 @@ export function BoardView({ game, seat, players }: { game: Projection; seat: Sea
   const event = game.event ? CARD_BY_ID[game.event] : null;
   return (
     <div className="stadium">
-      <div className="stadium-rail theirs">
+      <div className="seat-pod theirs">
         <EnergyOrb energy={them.energy} max={them.max} reserve={them.reserve} label={`${nameOf(players, opponent)} energy`} />
         <div className="rail-name">
           <strong>{nameOf(players, opponent)}</strong>
           <span>Turn {them.turns}/8</span>
         </div>
-        <CardPile count={them.handCount} label="Hand" />
       </div>
+      <CardPile className="hand-pile" count={them.handCount} label="Hand" />
 
+      <div className="felt-slot">
       <div className="felt" aria-label="Regions">
         <div className="felt-center">
           {event ? (
@@ -123,7 +124,7 @@ export function BoardView({ game, seat, players }: { game: Projection; seat: Sea
                 </div>
                 <header>
                   <strong>{REGION_LABEL[region]}</strong>
-                  <span>Stability {info.stability} · {holder}</span>
+                  <span>{holder} · stability {info.stability}</span>
                   <span>You {info.power[seat]} · opponent {info.power[opponent]}{(info.penalty[seat] > 0 || info.penalty[opponent] > 0) ? ` · penalty ${info.penalty[seat]}/${info.penalty[opponent]}` : ''}</span>
                 </header>
                 <div className="lane-row">
@@ -135,13 +136,16 @@ export function BoardView({ game, seat, players }: { game: Projection; seat: Sea
           })}
         </div>
       </div>
+      </div>
 
-      <div className="stadium-rail mine">
+      <div className="seat-pod mine">
         <EnergyOrb energy={me.energy} max={me.max} reserve={me.reserve} label="Your energy" />
         <div className="rail-name">
           <strong>{nameOf(players, seat)}</strong>
           <span>You · turn {me.turns}/8</span>
         </div>
+      </div>
+      <div className="pile-row">
         <CardPile count={game.deckCount} label="Deck" face="/brand/logo.jpg" />
         <CardPile count={game.eventDeckCount} label="Events" />
       </div>

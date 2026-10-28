@@ -9,5 +9,5 @@ export async function signIn(_state: { error: string } | null, formData: FormDat
   const password = String(formData.get('password') ?? '');
   const { error } = await settleAuth('sign-in', () => auth.signIn.email({ email, password }));
   if (error) return { error: 'Email or password is incorrect' };
-  redirect('/profile');
+  redirect('/home');
 }

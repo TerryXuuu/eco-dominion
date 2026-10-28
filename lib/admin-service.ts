@@ -184,6 +184,20 @@ export async function adminAct(client: Queryable, adminId: string, input: unknow
   const raw = (input ?? {}) as Record<string, unknown>;
   const reason = cleanText(raw.reason, REASON_MAX);
   if (!reason || reason.length < 3) return fail(400, 'Give a reason of 3–500 characters');
+  if (raw.kind === 'site') {
+    const copyright = cleanText(raw.copyright, 200);
+    const contacts = cleanText(raw.contacts, 300);
+    if (!copyright || !contacts) return fail(400, 'Copyright and contacts are both required');
+    await client.query(
+      `INSERT INTO site_setting (key, value) VALUES ('copyright', $1), ('contacts', $2)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+      [copyright, contacts],
+    );
+    await writeAudit(client, adminId, 'site.footer', adminId, { copyright, contacts, reason });
+    const overview = await adminOverview(client, adminId);
+    if (overview.status !== 200) return overview;
+    return { status: 200 as const, body: { message: 'Footer updated', ...overview.body } };
+  }
   const account = await findAccount(client, raw.handle);
   if (!account) return fail(404, 'Player not found');
   if (account.status === 'deleted') return fail(409, 'That account is deleted');
@@ -197,10 +211,13 @@ export async function adminAct(client: Queryable, adminId: string, input: unknow
     if (result.status !== 200) return result;
     message = action === 'suspend' ? `@${account.handle} is suspended` : `@${account.handle} is active again`;
   } else if (raw.kind === 'role') {
-    const role = raw.role === 'moderator' || raw.role === 'admin' ? raw.role : null;
-    if (!role) return fail(400, 'Choose moderator or admin');
+    const role = raw.role === 'moderator' || raw.role === 'admin' || raw.role === 'player' || raw.role === 'guest' ? raw.role : null;
+    if (!role) return fail(400, 'Choose admin, player, or guest');
     const revoke = raw.revoke === true;
     if (revoke && role === 'admin' && account.id === adminId) return fail(403, 'You cannot remove your own admin role');
+    if (!revoke && (role === 'guest' || role === 'player')) {
+      await client.query(`DELETE FROM user_role WHERE user_id = $1 AND role = $2`, [account.id, role === 'guest' ? 'player' : 'guest']);
+    }
     const changed = revoke
       ? await client.query(`DELETE FROM user_role WHERE user_id = $1 AND role = $2 RETURNING role`, [account.id, role])
       : await client.query(`INSERT INTO user_role (user_id, role) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING role`, [account.id, role]);

@@ -29,4 +29,8 @@ Architecture 2.0 replaces 1.0 for this edition at owner request: four 4-hour blo
 
 13 October 2026, S04 handoff: no new owner rulings. Ranked play remains disabled. Limitations observed across S01–S04 are listed in README.md (no wall-clock timeout worker, no `.test` email delivery, intermittent Neon Auth, no media uploads, no Vercel publish). Source is the handoff; this is not a production release.
 
+28 October 2026, owner request (Terry): after sign-in the player lands on /home, a personal record of rating, rank, results, opponents, weekly activity, and badges. The header keeps the same tabs on every page and, once signed in, shows level, display name, and Log out. Profile accepts a local avatar. List headings filter and sort. A fixed footer shows copyright and contacts, edited from the admin console. Accounts are admin, player, or guest. A guest can read the leaderboard and community and cannot play or post. Moderator remains available for the report queue.
+
+28 October 2026, owner request (Terry): Profile is a button in the header and on the personal home. Home keeps the weekly chart and adds a year of daily play, win and day streaks, peak rating, best score, and achievement seals. Level is drawn as a rank seal, from Seed at level 1 through Dominion at level 35.
+
 27 October 2026, owner request (Terry): the first turn was usually a pass because it refreshed to 1 energy and most opening cards cost 2 or more. Personal turn t now refreshes to max(3, t) energy, still capped at 10. Turns 1 and 2 therefore open on 3; from turn 3 the previous curve is unchanged, so an 8-cost legend is still a turn-8 card. This changes the opening numbers of R02 for play. The stored ruleset hash is unchanged.

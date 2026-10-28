@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { SiteHeader } from '../components/site-header';
 import { notifications } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
 import { MarkRead } from './inbox-client';
+import { InboxTable } from './inbox-table';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,27 +20,31 @@ const KIND: Record<string, string> = {
 };
 
 export default async function NotificationsPage() {
-  const { email, data } = await pageActor((client, userId) => notifications(client, userId, {}));
+  const { data } = await pageActor((client, userId) => notifications(client, userId, {}));
   if (data.status !== 200) return null;
   const inbox = data.body;
   return (
     <>
-      <SiteHeader email={email} />
+      <SiteHeader />
       <main className="shell stack">
         <h1>Notifications</h1>
         <p className="note">{inbox.unread} unread</p>
         <MarkRead />
         {inbox.notifications.length === 0 && <p className="note">Nothing yet.</p>}
-        <ol className="list">
-          {inbox.notifications.map((item) => (
-            <li key={item.id} className="panel list-row">
-              <span>{item.read ? '' : '● '}{item.actor ? <Link href={`/players/${item.actor.handle}`}>{item.actor.displayName}</Link> : 'A moderator'} {KIND[item.kind] ?? item.kind}</span>
-              {typeof item.details.postId === 'string' && <Link href={`/community/${item.details.postId}`}>Open post</Link>}
-              {typeof item.details.code === 'string' && <span>Code {item.details.code}</span>}
-              <time dateTime={item.createdAt}>{item.createdAt.slice(0, 16).replace('T', ' ')} UTC</time>
-            </li>
-          ))}
-        </ol>
+        {inbox.notifications.length > 0 && (
+          <InboxTable
+            labels={KIND}
+            rows={inbox.notifications.map((item) => ({
+              id: item.id,
+              read: item.read,
+              kind: item.kind,
+              actor: item.actor,
+              postId: typeof item.details.postId === 'string' ? item.details.postId : '',
+              code: typeof item.details.code === 'string' ? item.details.code : '',
+              createdAt: item.createdAt,
+            }))}
+          />
+        )}
       </main>
     </>
   );

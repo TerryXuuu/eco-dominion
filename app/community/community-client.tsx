@@ -55,7 +55,7 @@ export function Compose({ suspended }: { suspended: boolean }) {
   );
 }
 
-export function PostCard({ post, href }: { post: Post; href?: boolean }) {
+export function PostCard({ post, href, readonly }: { post: Post; href?: boolean; readonly?: boolean }) {
   const [likes, setLikes] = useState(post.likes);
   const [liked, setLiked] = useState(post.liked);
 
@@ -77,14 +77,14 @@ export function PostCard({ post, href }: { post: Post; href?: boolean }) {
       </p>
       <p className="post-body">{post.body}</p>
       <div className="row">
-        <button className="secondary" type="button" onClick={toggle}>{liked ? 'Unlike' : 'Like'} ({likes})</button>
+        {readonly ? <span>{likes} likes</span> : <button className="secondary" type="button" onClick={toggle}>{liked ? 'Unlike' : 'Like'} ({likes})</button>}
         {href && <Link href={`/community/${post.id}`}>{post.comments} comments</Link>}
       </div>
     </article>
   );
 }
 
-export function Feed({ initial, nextCursor, scope }: { initial: Post[]; nextCursor: string | null; scope: string }) {
+export function Feed({ initial, nextCursor, scope, readonly }: { initial: Post[]; nextCursor: string | null; scope: string; readonly?: boolean }) {
   const [posts, setPosts] = useState(initial);
   const [cursor, setCursor] = useState(nextCursor);
   const [busy, setBusy] = useState(false);
@@ -107,7 +107,7 @@ export function Feed({ initial, nextCursor, scope }: { initial: Post[]; nextCurs
       {posts.length === 0 && <p className="note">No posts yet.</p>}
       <ol className="list">
         {posts.map((post) => (
-          <li key={post.id}><PostCard post={post} href /></li>
+          <li key={post.id}><PostCard post={post} href readonly={readonly} /></li>
         ))}
       </ol>
       {cursor && <button className="secondary" disabled={busy} onClick={more}>Older posts</button>}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SiteHeader } from '../components/site-header';
 import { adminOverview } from '@/lib/admin-service';
 import { pageActor } from '@/lib/page-actor';
+import { siteCopy } from '../components/site-footer';
 import { AdminConsole } from './admin-client';
 
 export const dynamic = 'force-dynamic';
@@ -31,9 +32,9 @@ export default async function AdminPage() {
         <h1>Admin console</h1>
         <p className="note">
           Accounts, role grants, casual ratings and match records. Moderators still use the moderation queue for reported posts and comments.
-          Player stays on every account. You cannot remove your own admin role or suspend yourself.
+          Admin, player, and guest are the account roles. A guest can read and cannot play or post. You cannot remove your own admin role or suspend yourself.
         </p>
-        <AdminConsole initial={data} />
+        <AdminConsole initial={data} footer={await siteCopy()} />
       </main>
     </>
   );

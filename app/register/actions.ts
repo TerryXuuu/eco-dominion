@@ -13,5 +13,5 @@ export async function signUp(_state: { error: string } | null, formData: FormDat
   }
   const { error } = await settleAuth('sign-up', () => auth.signUp.email({ email, name, password }));
   if (error) return { error: 'Unable to create account. Try again shortly.' };
-  redirect('/profile');
+  redirect('/home');
 }

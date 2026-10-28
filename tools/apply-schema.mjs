@@ -15,6 +15,7 @@ const schema = read('db/001_initial.sql');
 const playSchema = read('db/002_play.sql');
 const communitySchema = read('db/003_community.sql');
 const roomFinishedSchema = read('db/004_room_finished.sql');
+const homeSchema = read('db/005_home.sql');
 const audit = read('docs/RULES_AUDIT_AND_DIGITAL_RULINGS.md');
 const approval = read('decisions/OWNER_RULES_APPROVAL.md');
 const cards = JSON.parse(read('data/cards.json'));
@@ -61,6 +62,12 @@ try {
   );
   const roomFinishedApplied = !roomCheck.rows.some((row) => String(row.def).includes('finished'));
   if (roomFinishedApplied) await client.query(roomFinishedSchema);
+  const guestRole = await client.query(
+    `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+     WHERE conrelid = 'public.user_role'::regclass AND contype = 'c'`,
+  );
+  const homeApplied = !guestRole.rows.some((row) => String(row.def).includes('guest'));
+  if (homeApplied) await client.query(homeSchema);
   await client.query('BEGIN');
   await client.query(
     `INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at)
@@ -74,7 +81,7 @@ try {
   }
   await client.query('COMMIT');
   const tables = await client.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema = 'public'`);
-  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', playSchemaApplied: playApplied ? 'db/002_play.sql' : 'already present', communitySchemaApplied: communityApplied ? 'db/003_community.sql' : 'already present', roomFinishedApplied: roomFinishedApplied ? 'db/004_room_finished.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
+  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', playSchemaApplied: playApplied ? 'db/002_play.sql' : 'already present', communitySchemaApplied: communityApplied ? 'db/003_community.sql' : 'already present', roomFinishedApplied: roomFinishedApplied ? 'db/004_room_finished.sql' : 'already present', homeApplied: homeApplied ? 'db/005_home.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
   throw error;

@@ -1,6 +1,6 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import type { EngineCommand, GameState, Projection, Seat } from '../src/engine.mjs';
-import { project } from './engine.ts';
+import { participationGate } from './access.ts';
 import {
   CASUAL_SEASON_ID,
   ELO_START,
@@ -14,6 +14,7 @@ import {
   type Snapshot,
 } from './match-rules.ts';
 import { COMPUTER_HANDLE, COMPUTER_USER_ID, chooseComputer } from './computer.ts';
+import { project } from './engine.ts';
 import { mutationGate } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
@@ -68,6 +69,8 @@ async function ensureComputer(client: Queryable) {
 
 /** Opens an unrated match against Grove and plays Grove's opening turn when Grove is first. */
 export async function startPractice(client: Queryable, userId: string, now: number) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, userId);
   if (!gate.ok) return fail(403, gate.error);
   const active = await activeMatchFor(client, userId);
@@ -83,6 +86,8 @@ export async function startPractice(client: Queryable, userId: string, now: numb
 // ---------- Private rooms ----------
 
 export async function createRoom(client: Queryable, userId: string) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const active = await activeMatchFor(client, userId);
   if (active) return fail(409, 'Finish your current match first', { matchId: active });
   const open = await client.query(`SELECT code FROM room WHERE host_id = $1 AND status = 'open'`, [userId]);
@@ -99,6 +104,8 @@ export async function createRoom(client: Queryable, userId: string) {
 }
 
 export async function joinRoom(client: Queryable, userId: string, rawCode: unknown, now: number) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const code = typeof rawCode === 'string' ? rawCode.trim().toUpperCase() : '';
   if (!ROOM_CODE.test(code)) return fail(400, 'Enter the six-character room code');
   const found = await client.query(`SELECT id, host_id, guest_id, status, match_id FROM room WHERE code = $1 FOR UPDATE`, [code]);
@@ -170,6 +177,8 @@ async function queueView(client: Queryable, userId: string) {
 }
 
 export async function enterQueue(client: Queryable, userId: string, now: number) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, userId);
   if (!gate.ok) return fail(403, gate.error);
   await client.query(`SELECT pg_advisory_xact_lock($1)`, [QUEUE_LOCK]);

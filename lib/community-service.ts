@@ -16,6 +16,7 @@ import {
   type RelationshipAction,
   type ReportSubject,
 } from './community-policy.ts';
+import { participationGate } from './access.ts';
 import { canViewProfile, mutationGate, type Visibility } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
@@ -114,6 +115,8 @@ async function visiblePost(client: Queryable, viewerId: string, postId: unknown)
 }
 
 export async function createPost(client: Queryable, userId: string, input: unknown) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, userId);
   if (!gate.ok) return fail(403, gate.error);
   const parsed = parsePostInput(input);
@@ -159,6 +162,8 @@ async function ownPost(client: Queryable, userId: string, postId: unknown) {
 }
 
 export async function updatePost(client: Queryable, userId: string, postId: unknown, input: unknown) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const patch = parsePostPatch(input);
   if (!patch) return fail(400, 'Write 1–2000 characters and choose who can see it');
   const owned = await ownPost(client, userId, postId);
@@ -173,6 +178,8 @@ export async function updatePost(client: Queryable, userId: string, postId: unkn
 }
 
 export async function deletePost(client: Queryable, userId: string, postId: unknown) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const owned = await ownPost(client, userId, postId);
   if (owned.error) return owned.error;
   await client.query(`UPDATE post SET status = 'deleted', updated_at = now() WHERE id = $1`, [postId]);
@@ -181,6 +188,8 @@ export async function deletePost(client: Queryable, userId: string, postId: unkn
 }
 
 export async function setLike(client: Queryable, userId: string, postId: unknown, like: boolean) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const row = await visiblePost(client, userId, postId);
   if (!row) return fail(404, 'Post not found');
   if (like) {
@@ -194,6 +203,8 @@ export async function setLike(client: Queryable, userId: string, postId: unknown
 }
 
 export async function addComment(client: Queryable, userId: string, postId: unknown, input: unknown) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   const body = cleanText((input as Record<string, unknown> | null)?.body, COMMENT_MAX);
   if (!body) return fail(400, 'Write a comment of 1–1000 characters');
   const row = await visiblePost(client, userId, postId);
@@ -207,6 +218,8 @@ export async function addComment(client: Queryable, userId: string, postId: unkn
 }
 
 export async function deleteComment(client: Queryable, userId: string, commentId: unknown) {
+  const playing = await participationGate(client, userId);
+  if (!playing.ok) return fail(403, playing.error);
   if (!isUuid(commentId)) return fail(404, 'Comment not found');
   const found = await client.query(
     `SELECT c.author_id FROM comment c JOIN app_user cu ON cu.id = c.author_id JOIN post p ON p.id = c.post_id JOIN app_user u ON u.id = p.author_id
@@ -257,6 +270,8 @@ export async function getRelationship(client: Queryable, viewerId: string, handl
 }
 
 export async function changeRelationship(client: Queryable, viewerId: string, handle: unknown, input: unknown) {
+  const playing = await participationGate(client, viewerId);
+  if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, viewerId);
   if (!gate.ok) return fail(403, gate.error);
   const action = (input as Record<string, unknown> | null)?.action as RelationshipAction;

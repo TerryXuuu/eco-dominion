@@ -9,6 +9,20 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
 
+  async function uploadAvatar(file: File | null) {
+    if (!file) return;
+    setPending(true);
+    setError('');
+    setMessage('');
+    const body = new FormData();
+    body.set('avatar', file);
+    const response = await fetch('/api/profile/avatar', { method: 'POST', body });
+    const payload = await response.json().catch(() => ({}));
+    setPending(false);
+    if (!response.ok) setError(typeof payload.error === 'string' ? payload.error : 'Unable to upload avatar');
+    else location.reload();
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -53,6 +67,9 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
         </select>
       </label>
       <label>Locale<input name="locale" defaultValue={profile.locale} pattern="[a-z]{2}-[A-Z]{2}" required /></label>
+      <label>Avatar
+        <input name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)} />
+      </label>
       {error && <p className="error">{error}</p>}
       {message && <p>{message}</p>}
       <button disabled={pending} type="submit">{pending ? 'Saving…' : 'Save profile'}</button>

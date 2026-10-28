@@ -19,7 +19,7 @@ type Post = {
 
 type Comment = { id: string; author: { handle: string; displayName: string }; body: string; createdAt: string; mine: boolean };
 
-export function Thread({ post, comments, suspended }: { post: Post; comments: Comment[]; suspended: boolean }) {
+export function Thread({ post, comments, suspended, readonly }: { post: Post; comments: Comment[]; suspended: boolean; readonly?: boolean }) {
   const [items, setItems] = useState(comments);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -49,18 +49,18 @@ export function Thread({ post, comments, suspended }: { post: Post; comments: Co
 
   return (
     <>
-      <PostCard post={post} />
-      {post.mine && !suspended && <button className="secondary" type="button" onClick={removePost}>Delete post</button>}
+      <PostCard post={post} readonly={readonly || suspended} />
+      {post.mine && !suspended && !readonly && <button className="secondary" type="button" onClick={removePost}>Delete post</button>}
       <ol className="list">
         {items.map((comment) => (
           <li key={comment.id} className="panel">
             <p className="note">{comment.author.displayName} · @{comment.author.handle}</p>
             <p className="post-body">{comment.body}</p>
-            {comment.mine && !suspended && <button className="secondary" type="button" onClick={() => removeComment(comment.id)}>Delete</button>}
+            {comment.mine && !suspended && !readonly && <button className="secondary" type="button" onClick={() => removeComment(comment.id)}>Delete</button>}
           </li>
         ))}
       </ol>
-      {!post.mine && !suspended && (
+      {!post.mine && !suspended && !readonly && (
         <form
           className="panel stack"
           onSubmit={async (event) => {
@@ -78,7 +78,9 @@ export function Thread({ post, comments, suspended }: { post: Post; comments: Co
           <button className="secondary" type="submit">Send report</button>
         </form>
       )}
-      {suspended ? (
+      {readonly ? (
+        <p className="note">Guests can read posts. Playing, posting, likes, and comments are for players.</p>
+      ) : suspended ? (
         <p className="note">Your account is suspended; you cannot comment.</p>
       ) : (
         <form className="panel stack" onSubmit={send}>

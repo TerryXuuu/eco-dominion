@@ -1,6 +1,8 @@
 import { SiteHeader } from '../components/site-header';
 import { APPROVAL, CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID } from '@/lib/rulings';
 
+export const dynamic = 'force-dynamic';
+
 export default function RulesPage() {
   const legal = CORRECTED_ENERGY_EXAMPLE.legal;
   return (
