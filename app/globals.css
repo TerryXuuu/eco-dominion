@@ -256,20 +256,28 @@ button:disabled { opacity: 0.6; cursor: wait; }
 .hero.compact h1 { font-size: 1.2rem; }
 .profile-layout {
   width: min(52rem, 100%);
-  margin: 1.25rem auto 3rem;
+  margin: 0.35rem auto 0;
+  padding: 0.7rem 0.85rem;
   display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  gap: 1.1rem;
+  grid-template-columns: 9.2rem minmax(0, 1fr);
+  gap: 0.75rem;
   align-items: start;
 }
-.profile-portrait { display: grid; justify-items: center; gap: 0.55rem; text-align: center; }
-.profile-portrait .avatar.large, .avatar-fallback.large { width: 7rem; height: 7rem; border-radius: 50%; }
-.avatar-fallback.large { font-size: 2rem; }
+.profile-portrait { display: grid; justify-items: center; gap: 0.35rem; text-align: center; align-content: start; }
+.profile-portrait .avatar.large, .avatar-fallback.large { width: 4.4rem; height: 4.4rem; border-radius: 50%; }
+.avatar-fallback.large { font-size: 1.35rem; }
+.profile-portrait .button { padding: 0.28rem 0.65rem; font-size: 0.78rem; }
+.profile-portrait .note { margin: 0; font-size: 0.7rem; line-height: 1.25; }
 .avatar-pick { display: inline-grid; place-items: center; cursor: pointer; }
 .avatar-pick input { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
-.profile-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.profile-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
 .profile-fields h1, .profile-fields .wide, .profile-fields button { grid-column: 1 / -1; }
-.profile-fields textarea { min-height: 5.5rem; }
+.profile-fields h1 { margin: 0; font-size: 1.15rem; }
+.profile-fields p { margin: 0; }
+.profile-fields label { gap: 0.12rem; font-size: 0.78rem; }
+.profile-fields input, .profile-fields select, .profile-fields textarea { padding: 0.32rem 0.55rem; }
+.profile-fields textarea { min-height: 2.8rem; resize: none; }
+.profile-fields button { padding: 0.4rem 1rem; }
 @media (max-width: 720px) {
   .profile-layout, .profile-fields { grid-template-columns: 1fr; }
 }

@@ -71,7 +71,7 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
           {pending ? 'Uploading…' : 'Upload avatar'}
           <input name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={pending} onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)} />
         </label>
-        <p className="note">JPEG, PNG, WebP, or GIF. 1.5 MB max.</p>
+        <p className="note">JPEG, PNG, WebP, GIF · 1.5 MB</p>
       </div>
       <div className="profile-fields">
         <h1>Your profile</h1>
