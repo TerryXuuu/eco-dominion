@@ -1,3 +1,5 @@
+import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { auth, authConfigured, toIdentity } from './auth';
 import { withTransaction } from './db';
 import { privateJson } from './http';
@@ -10,8 +12,14 @@ type Handler = (client: Queryable, userId: string) => Promise<{ status: number; 
 export class AuthUnavailableError extends Error {}
 
 const SESSION_ATTEMPTS = 3;
+const SESSION_TTL_MS = 20_000;
+const remembered = new Map<string, { at: number; identity: AuthIdentity | null }>();
 
-export async function currentIdentity(): Promise<AuthIdentity | null> {
+function sessionToken(jar: Awaited<ReturnType<typeof cookies>>) {
+  return jar.get('__Secure-neon-auth.session_token')?.value ?? jar.get('neon-auth.session_token')?.value ?? '';
+}
+
+async function lookupIdentity(): Promise<AuthIdentity | null> {
   if (!authConfigured) return null;
   let failure: unknown = null;
   for (let attempt = 0; attempt < SESSION_ATTEMPTS; attempt += 1) {
@@ -27,6 +35,30 @@ export async function currentIdentity(): Promise<AuthIdentity | null> {
   }
   console.error('[auth] session lookup failed', failure);
   throw new AuthUnavailableError('Authentication service unreachable');
+}
+
+/** One session read per request, and a short memory of it so header tabs do not call Neon Auth on every click. */
+export const currentIdentity = cache(async (): Promise<AuthIdentity | null> => {
+  let token = '';
+  try {
+    token = sessionToken(await cookies());
+  } catch {
+    token = '';
+  }
+  const key = token || 'anonymous';
+  const hit = remembered.get(key);
+  if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.identity;
+  const identity = await lookupIdentity();
+  remembered.set(key, { at: Date.now(), identity });
+  if (remembered.size > 100) {
+    const oldest = remembered.keys().next().value;
+    if (oldest) remembered.delete(oldest);
+  }
+  return identity;
+});
+
+export function forgetSession(token: string) {
+  if (token) remembered.delete(token);
 }
 
 /** Authenticates, maps the provider subject to app_user and runs the handler inside one request-scoped transaction. */

@@ -4,11 +4,17 @@ import { runtimeEnv } from './config';
 
 neonConfig.webSocketConstructor = ws;
 
-export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+let pool: Pool | null = null;
+
+function getPool() {
   const { databaseUrl } = runtimeEnv();
   if (!databaseUrl) throw new Error('Missing DATABASE_URL');
-  const pool = new Pool({ connectionString: databaseUrl });
-  const client = await pool.connect();
+  if (!pool) pool = new Pool({ connectionString: databaseUrl, max: 5 });
+  return pool;
+}
+
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const result = await fn(client);
@@ -23,6 +29,5 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
     throw error;
   } finally {
     client.release();
-    await pool.end();
   }
 }

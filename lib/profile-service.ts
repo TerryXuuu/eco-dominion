@@ -13,7 +13,8 @@ export type AuthIdentity = {
 
 const PROFILE_SQL = `
   SELECT u.id AS user_id, u.email, u.handle, u.status,
-         p.display_name, p.bio, p.visibility, p.locale
+         p.display_name, p.bio, p.visibility, p.locale,
+         COALESCE((SELECT array_agg(role ORDER BY role) FROM user_role ur WHERE ur.user_id = u.id), '{}') AS roles
   FROM app_user u
   JOIN profile p ON p.user_id = u.id
 `;
@@ -32,10 +33,15 @@ function asRow(row: Record<string, unknown>, roles: string[]): ProfileRow {
   };
 }
 
-async function withRoles(client: Queryable, row: Record<string, unknown> | undefined) {
+function rolesOf(raw: unknown) {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === 'string') return raw.replace(/^\{|\}$/g, '').split(',').filter(Boolean);
+  return [];
+}
+
+async function withRoles(_client: Queryable, row: Record<string, unknown> | undefined) {
   if (!row) return null;
-  const roles = await client.query(`SELECT role FROM user_role WHERE user_id = $1 ORDER BY role`, [row.user_id]);
-  return asRow(row, roles.rows.map((item) => String(item.role)));
+  return asRow(row, rolesOf(row.roles));
 }
 
 async function loadBySubject(client: Queryable, subject: string) {
@@ -62,8 +68,9 @@ export async function provisionUser(client: Queryable, actor: AuthIdentity) {
         `UPDATE app_user SET email = $2, email_verified_at = CASE WHEN $3 THEN COALESCE(email_verified_at, now()) ELSE email_verified_at END WHERE auth_subject = $1`,
         [actor.subject, actor.email, actor.emailVerified],
       );
+      return (await loadBySubject(client, actor.subject)) ?? existing;
     }
-    return (await loadBySubject(client, actor.subject)) ?? existing;
+    return existing;
   }
 
   const emailClash = await client.query(`SELECT 1 FROM app_user WHERE lower(email) = lower($1)`, [actor.email]);

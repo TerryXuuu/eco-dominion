@@ -20,19 +20,17 @@ export default async function HomeDashboardPage() {
     <>
       <SiteHeader />
       <main className="shell stack">
-        <section className="hero compact home-head">
+        <section className="page-head">
           <Link className="portrait" href="/profile" aria-label="Open your profile">
-            {home.hasAvatar ? <img className="avatar large" src="/api/profile/avatar" alt="" /> : <RankMark level={home.level} size={72} />}
+            {home.hasAvatar ? <img className="avatar" src="/api/profile/avatar" alt="" /> : <RankMark level={home.level} size={28} />}
           </Link>
-          <div>
-            <p className="rank-line"><RankMark level={home.level} size={36} /> <span>{rank.name} · Level {home.level}</span></p>
+          <div className="page-id">
             <h1>{home.displayName}</h1>
-            <p className="lede">@{home.handle}</p>
-            <p className="note">{rank.blurb}</p>
-            <div className="row">
-              <Link className="button" href="/profile">Profile</Link>
-              <Link className="button secondary" href="/play">Play</Link>
-            </div>
+            <p className="note">@{home.handle} · {rank.name} · Level {home.level}</p>
+          </div>
+          <div className="row">
+            <Link className="button" href="/profile">Profile</Link>
+            <Link className="button secondary" href="/play">Play</Link>
           </div>
         </section>
         <section className="stat-grid">

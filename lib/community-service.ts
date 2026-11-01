@@ -11,6 +11,7 @@ import {
   parsePostInput,
   parsePostPatch,
   parseReport,
+  parseSearch,
   RELATIONSHIP_ACTIONS,
   type ModerationAction,
   type RelationshipAction,
@@ -35,17 +36,38 @@ const VISIBLE_POST = `p.status = 'visible' AND u.status <> 'deleted' AND NOT ${b
 const VISIBLE_COMMENT = `c.status = 'visible' AND cu.status <> 'deleted' AND NOT ${blocked('$1', 'c.author_id')}`;
 
 const POST_SELECT = `
-  SELECT p.id, p.body, p.visibility, p.created_at, p.updated_at, p.author_id, u.handle, pr.display_name,
+  SELECT p.id, p.body, p.visibility, p.tags, p.created_at, p.updated_at, p.author_id, u.handle, pr.display_name,
+    (pr.avatar_key IS NOT NULL) AS has_avatar,
     (SELECT count(*)::int FROM reaction r WHERE r.post_id = p.id) AS likes,
     EXISTS (SELECT 1 FROM reaction r WHERE r.post_id = p.id AND r.user_id = $1) AS liked,
-    (SELECT count(*)::int FROM comment c JOIN app_user cu ON cu.id = c.author_id WHERE c.post_id = p.id AND ${VISIBLE_COMMENT}) AS comments
+    (SELECT count(*)::int FROM comment c JOIN app_user cu ON cu.id = c.author_id WHERE c.post_id = p.id AND ${VISIBLE_COMMENT}) AS comments,
+    COALESCE((SELECT json_agg(i.id ORDER BY i.created_at) FROM post_image i WHERE i.post_id = p.id), '[]'::json) AS images
   FROM post p JOIN app_user u ON u.id = p.author_id JOIN profile pr ON pr.user_id = u.id`;
+
+function textList(raw: unknown) {
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed) as unknown;
+        if (Array.isArray(parsed)) return parsed.map(String);
+      } catch {
+        /* A Postgres array arrives as a brace list instead. */
+      }
+    }
+    return trimmed.replace(/^\{|\}$/g, '').split(',').map((item) => item.trim()).filter(Boolean);
+  }
+  return [];
+}
 
 function postView(row: Record<string, unknown>, viewerId: string) {
   return {
     id: String(row.id),
-    author: { handle: String(row.handle), displayName: String(row.display_name) },
+    author: { handle: String(row.handle), displayName: String(row.display_name), hasAvatar: Boolean(row.has_avatar) },
     body: String(row.body),
+    tags: textList(row.tags),
+    images: textList(row.images),
     visibility: String(row.visibility) as Visibility,
     createdAt: iso(row.created_at),
     edited: iso(row.updated_at) !== iso(row.created_at),
@@ -88,16 +110,22 @@ async function isAdmin(client: Queryable, userId: string) {
 
 // ---------- Feed and posts ----------
 
-export async function feed(client: Queryable, viewerId: string, query: { cursor?: unknown; limit?: unknown; scope?: unknown }) {
+export async function feed(client: Queryable, viewerId: string, query: { cursor?: unknown; limit?: unknown; scope?: unknown; q?: unknown }) {
   const cursor = decodeCursor(query.cursor);
   if (cursor === 'invalid') return fail(400, 'Invalid cursor');
   const limit = parseLimit(query.limit);
   const params: unknown[] = [viewerId];
   let where = VISIBLE_POST;
   if (query.scope === 'following') where += ` AND (p.author_id = $1 OR EXISTS (SELECT 1 FROM user_follow uf WHERE uf.follower = $1 AND uf.followed = p.author_id))`;
+  const search = parseSearch(query.q);
+  if (search) {
+    params.push(`%${search}%`);
+    const mark = `$${params.length}`;
+    where += ` AND (p.body ILIKE ${mark} OR pr.display_name ILIKE ${mark} OR u.handle ILIKE ${mark} OR EXISTS (SELECT 1 FROM unnest(p.tags) tag WHERE tag ILIKE ${mark}))`;
+  }
   if (cursor) {
     params.push(cursor.createdAt, cursor.id);
-    where += ` AND (p.created_at, p.id) < ($2::timestamptz, $3::uuid)`;
+    where += ` AND (p.created_at, p.id) < ($${params.length - 1}::timestamptz, $${params.length}::uuid)`;
   }
   params.push(limit + 1);
   const rows = (await client.query(`${POST_SELECT} WHERE ${where} ORDER BY p.created_at DESC, p.id DESC LIMIT $${params.length}`, params)).rows;
@@ -114,25 +142,49 @@ async function visiblePost(client: Queryable, viewerId: string, postId: unknown)
   return (await client.query(`${POST_SELECT} WHERE ${VISIBLE_POST} AND p.id = $2`, [viewerId, postId])).rows[0] ?? null;
 }
 
-export async function createPost(client: Queryable, userId: string, input: unknown) {
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const MAX_IMAGE_BYTES = 1_500_000;
+
+export async function createPost(client: Queryable, userId: string, input: unknown, images: { mime: string; bytes: Buffer }[] = []) {
   const playing = await participationGate(client, userId);
   if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, userId);
   if (!gate.ok) return fail(403, gate.error);
   const parsed = parsePostInput(input);
-  if (!parsed) return fail(400, `Write 1–2000 characters and choose who can see it`);
+  if (!parsed) return fail(400, 'Write 1–2000 characters, choose who can see it, and use up to 5 tags of letters, numbers, or hyphens');
+  if (images.length > 3) return fail(400, 'Attach at most 3 images');
+  for (const image of images) {
+    if (!IMAGE_TYPES.has(image.mime) || image.bytes.length === 0 || image.bytes.length > MAX_IMAGE_BYTES) {
+      return fail(400, 'Each image must be a JPEG, PNG, WebP, or GIF under 1.5 MB');
+    }
+  }
   if (await limited(client, userId, 'post.create', 10, 60)) return fail(429, 'You are posting too quickly; wait a minute');
   const id = randomUUID();
-  await client.query(`INSERT INTO post (id, author_id, body, visibility) VALUES ($1, $2, $3, $4)`, [id, userId, parsed.body, parsed.visibility]);
-  await audit(client, userId, 'post.create', 'post', id);
+  await client.query(`INSERT INTO post (id, author_id, body, visibility, tags) VALUES ($1, $2, $3, $4, $5)`, [id, userId, parsed.body, parsed.visibility, parsed.tags]);
+  for (const image of images) {
+    await client.query(`INSERT INTO post_image (id, post_id, mime, bytes) VALUES ($1, $2, $3, $4)`, [randomUUID(), id, image.mime, image.bytes]);
+  }
+  await audit(client, userId, 'post.create', 'post', id, { tags: parsed.tags, images: images.length });
   return { status: 201, body: { post: postView((await visiblePost(client, userId, id))!, userId) } };
+}
+
+export async function readPostImage(client: Queryable, viewerId: string, postId: unknown, imageId: unknown) {
+  if (!isUuid(postId) || !isUuid(imageId)) return null;
+  const found = await client.query(
+    `SELECT i.mime, i.bytes FROM post_image i
+     JOIN post p ON p.id = i.post_id
+     JOIN app_user u ON u.id = p.author_id
+     WHERE i.id = $2 AND p.id = $3 AND ${VISIBLE_POST}`,
+    [viewerId, imageId, postId],
+  );
+  return found.rows[0] ?? null;
 }
 
 export async function getPost(client: Queryable, viewerId: string, postId: unknown) {
   const row = await visiblePost(client, viewerId, postId);
   if (!row) return fail(404, 'Post not found');
   const comments = await client.query(
-    `SELECT c.id, c.body, c.created_at, c.author_id, cu.handle, cp.display_name
+    `SELECT c.id, c.body, c.created_at, c.author_id, cu.handle, cp.display_name, (cp.avatar_key IS NOT NULL) AS has_avatar
      FROM comment c JOIN app_user cu ON cu.id = c.author_id JOIN profile cp ON cp.user_id = cu.id
      WHERE c.post_id = $2 AND ${VISIBLE_COMMENT} ORDER BY c.created_at, c.id LIMIT 201`,
     [viewerId, postId],
@@ -143,7 +195,7 @@ export async function getPost(client: Queryable, viewerId: string, postId: unkno
       post: postView(row, viewerId),
       comments: comments.rows.slice(0, 200).map((comment) => ({
         id: String(comment.id),
-        author: { handle: String(comment.handle), displayName: String(comment.display_name) },
+        author: { handle: String(comment.handle), displayName: String(comment.display_name), hasAvatar: Boolean(comment.has_avatar) },
         body: String(comment.body),
         createdAt: iso(comment.created_at),
         mine: String(comment.author_id) === viewerId,

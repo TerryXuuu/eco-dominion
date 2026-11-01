@@ -23,17 +23,33 @@ export default async function ModerationPage() {
         <p className="note">This queue is for reported posts, comments and players. Hide or restore content, suspend or restore the reported account, and close the report. Accounts, role grants, casual ratings and match records are on the admin console.</p>
         <Queue reports={data.reports} />
         <h2>Audit trail</h2>
-        <ol className="list">
-          {data.entries.map((entry) => (
-            <li key={entry.id} className="panel list-row">
-              <strong>{entry.action}</strong>
-              <span>{entry.actor}</span>
-              <span>{entry.subjectType} {entry.subjectId}</span>
-              {entry.reason && <span>{entry.reason}</span>}
-              <time dateTime={entry.createdAt}>{entry.createdAt.slice(0, 16).replace('T', ' ')} UTC</time>
-            </li>
-          ))}
-        </ol>
+        {data.entries.length === 0 && <p className="note">No audit entries yet.</p>}
+        {data.entries.length > 0 && (
+          <div className="panel audit">
+            <table>
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Action</th>
+                  <th>Actor</th>
+                  <th>Subject</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td><time dateTime={entry.createdAt}>{entry.createdAt.slice(0, 16).replace('T', ' ')} UTC</time></td>
+                    <td>{entry.action}</td>
+                    <td>{entry.actor}</td>
+                    <td title={`${entry.subjectType} ${entry.subjectId}`}>{entry.subjectType} {entry.subjectId.length > 8 ? `${entry.subjectId.slice(0, 8)}…` : entry.subjectId}</td>
+                    <td>{entry.reason ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
     </>
   );

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth, authConfigured } from '@/lib/auth';
 
 const protect = auth.middleware({ loginUrl: '/login' });
-const SESSION_COOKIE = '__Secure-neon-auth.session_token';
+const SESSION_COOKIES = ['__Secure-neon-auth.session_token', 'neon-auth.session_token'];
 
 export default async function proxy(request: NextRequest) {
   if (!authConfigured) {
@@ -10,14 +10,10 @@ export default async function proxy(request: NextRequest) {
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
-  const response = await protect(request);
-  const location = response.headers.get('location');
-  // A blip talking to Neon Auth used to bounce a signed-in player to /login
-  // on the next header link. Keep the request when their session cookie is still here.
-  if (request.cookies.has(SESSION_COOKIE) && location && new URL(location, request.url).pathname === '/login') {
-    return NextResponse.next();
-  }
-  return response;
+  // The session cookie is enough to let the page through. Calling Neon Auth
+  // here made every header tab wait on a network round trip before rendering.
+  if (SESSION_COOKIES.some((name) => request.cookies.has(name))) return NextResponse.next();
+  return protect(request);
 }
 
 export const config = {

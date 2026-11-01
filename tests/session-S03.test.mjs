@@ -35,6 +35,7 @@ async function setup() {
   await db.exec(readFileSync(new URL('../db/002_play.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/003_community.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/004_room_finished.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../db/006_post_media.sql', import.meta.url), 'utf8'));
   await db.query(`INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at) VALUES ('digital-1.0', 'test', '{}', '{"ranked":false}', now())`);
   const ids = [];
   const handles = [];
@@ -62,14 +63,19 @@ async function tx(db, fn) {
 test('two users post, comment and like; friends-only posts stay off the public feed; blocks hide both directions', async () => {
   const { db, ids, handles } = await setup();
   const [ada, bea] = ids;
-  const publicPost = await tx(db, () => createPost(db, ada, { body: 'Public note from Ada', visibility: 'public' }));
+  const publicPost = await tx(db, () => createPost(db, ada, { body: 'Public note from Ada', visibility: 'public', tags: ['mouse', 'opener'] }));
   assert.equal(publicPost.status, 201);
   const friendsPost = await tx(db, () => createPost(db, ada, { body: 'Friends only', visibility: 'friends' }));
   const privatePost = await tx(db, () => createPost(db, ada, { body: 'Private diary', visibility: 'private' }));
   const beaFeed = await tx(db, () => feed(db, bea, {}));
   assert.equal(beaFeed.body.posts.length, 1);
   assert.equal(beaFeed.body.posts[0].body, 'Public note from Ada');
+  assert.deepEqual(beaFeed.body.posts[0].tags, ['mouse', 'opener']);
   assert.equal(beaFeed.body.posts[0].mine, false);
+  const tagged = await tx(db, () => feed(db, bea, { q: 'mouse' }));
+  assert.equal(tagged.body.posts.length, 1);
+  const missed = await tx(db, () => feed(db, bea, { q: 'oak' }));
+  assert.equal(missed.body.posts.length, 0);
   const adaFeed = await tx(db, () => feed(db, ada, {}));
   assert.equal(adaFeed.body.posts.length, 3);
 

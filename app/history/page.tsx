@@ -13,6 +13,7 @@ export default async function HistoryPage() {
   const { data } = await pageActor((client, userId) => history(client, userId));
   const matches = (data.body as Awaited<ReturnType<typeof history>>['body']).matches.map((match) => ({
     ...match,
+    opponent: match.opponentName,
     when: new Date(match.finishedAt).toISOString().slice(0, 16).replace('T', ' '),
     result: match.outcome === 'win' ? 'Win' : match.outcome === 'loss' ? 'Loss' : 'Draw',
     detail: `${match.mode === 'casual' ? 'Casual' : 'Private'} · ${REASON[match.reason] ?? match.reason}`,

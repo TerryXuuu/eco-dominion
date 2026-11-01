@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { PlayerPortrait } from '../../components/player-portrait';
 import { SiteHeader } from '../../components/site-header';
 import { getRelationship } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
@@ -25,10 +26,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
     <>
       <SiteHeader email={email} />
       <main className="shell stack">
-        <article className="panel stack">
-          <p className="note">@{profile.handle}</p>
-          <h1>{profile.displayName}</h1>
-          <p>{profile.bio || 'No biography yet.'}</p>
+        <article className="panel home-head">
+          <PlayerPortrait handle={profile.handle} name={profile.displayName} large />
+          <div>
+            <h1>{profile.displayName}</h1>
+            <p className="note">@{profile.handle}</p>
+            <p>{profile.bio || 'No biography yet.'}</p>
+          </div>
         </article>
         {relationship && <PlayerActions handle={profile.handle} initial={relationship} suspended={suspended} />}
         {!relationship && <p className="note">This is you.</p>}

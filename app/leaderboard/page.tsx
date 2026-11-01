@@ -19,7 +19,7 @@ export default async function LeaderboardPage() {
           <LeaderboardTable
             rows={body.entries.map((row) => ({
               rank: row.rank,
-              player: row.displayName ? `${row.displayName} (@${row.handle})` : 'Hidden player',
+              player: row.displayName ?? 'Hidden player',
               rating: row.rating,
               games: row.games,
             }))}

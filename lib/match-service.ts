@@ -462,12 +462,13 @@ export async function submitCommand(client: Queryable, userId: string, matchId: 
 export async function history(client: Queryable, userId: string) {
   const found = await client.query(
     `SELECT m.id, m.mode, m.finished_at, r.winner_seat, r.reason, r.score0, r.score1, me.seat,
-            u.handle AS opponent_handle, rc.before_value, rc.after_value
+            u.handle AS opponent_handle, op.display_name AS opponent_name, rc.before_value, rc.after_value
      FROM match_player me
      JOIN match m ON m.id = me.match_id AND m.status = 'finished'
      JOIN match_result r ON r.match_id = m.id
      JOIN match_player them ON them.match_id = m.id AND them.seat <> me.seat
      JOIN app_user u ON u.id = them.user_id
+     JOIN profile op ON op.user_id = them.user_id
      LEFT JOIN rating_change rc ON rc.match_id = m.id AND rc.user_id = me.user_id
      WHERE me.user_id = $1 ORDER BY m.finished_at DESC LIMIT 50`,
     [userId],
@@ -487,6 +488,7 @@ export async function history(client: Queryable, userId: string) {
           scores: row.score0 === null ? null : [Number(row.score0), Number(row.score1)],
           seat,
           opponent: String(row.opponent_handle),
+          opponentName: String(row.opponent_name ?? row.opponent_handle),
           rating: row.before_value === null ? null : { before: Number(row.before_value), after: Number(row.after_value) },
         };
       }),

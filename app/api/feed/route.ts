@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const query = { cursor: url.searchParams.get('cursor'), limit: url.searchParams.get('limit'), scope: url.searchParams.get('scope') };
+  const query = { cursor: url.searchParams.get('cursor'), limit: url.searchParams.get('limit'), scope: url.searchParams.get('scope'), q: url.searchParams.get('q') };
   let identity;
   try {
     identity = await currentIdentity();
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     throw error;
   }
   if (!identity) {
-    const result = await withTransaction((client) => feed(client, PUBLIC_READER, { cursor: query.cursor, limit: query.limit }));
+    const result = await withTransaction((client) => feed(client, PUBLIC_READER, { cursor: query.cursor, limit: query.limit, q: query.q }));
     return privateJson(result.body, result.status);
   }
   return actorRoute(request, (client, userId) => feed(client, userId, query), { mutation: false });

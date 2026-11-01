@@ -17,6 +17,7 @@ async function setup() {
   await db.exec(readFileSync(new URL('../db/002_play.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/003_community.sql', import.meta.url), 'utf8'));
   await db.exec(readFileSync(new URL('../db/004_room_finished.sql', import.meta.url), 'utf8'));
+  await db.exec(readFileSync(new URL('../db/006_post_media.sql', import.meta.url), 'utf8'));
   await db.query(`INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at) VALUES ('digital-1.0', 'test', '{}', '{"ranked":false}', now())`);
   const ids = [];
   const handles = [];

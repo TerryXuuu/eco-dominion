@@ -27,12 +27,37 @@ export function cleanText(value: unknown, max: number): string | null {
 
 const isVisibility = (value: unknown): value is Visibility => value === 'public' || value === 'friends' || value === 'private';
 
+const TAG = /^[a-z0-9][a-z0-9-]{0,23}$/;
+
+/** Up to five short tags. A string is split on commas, spaces, and #. Invalid tags reject the post. */
+export function parseTags(raw: unknown): string[] | null {
+  if (raw === undefined || raw === null || raw === '') return [];
+  const list = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(/[,#\s]+/) : null;
+  if (!list) return null;
+  const tags: string[] = [];
+  for (const item of list) {
+    const tag = String(item).trim().toLowerCase().replace(/^#/, '');
+    if (!tag) continue;
+    if (!TAG.test(tag)) return null;
+    if (!tags.includes(tag)) tags.push(tag);
+  }
+  return tags.length <= 5 ? tags : null;
+}
+
+/** A community search of at least two characters, with LIKE wildcards removed. */
+export function parseSearch(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const text = raw.trim().slice(0, 80).replace(/[%_\\]/g, '');
+  return text.length >= 2 ? text : null;
+}
+
 export function parsePostInput(input: unknown) {
   const raw = (input ?? {}) as Record<string, unknown>;
   const body = cleanText(raw.body, POST_MAX);
   const visibility = raw.visibility ?? 'public';
-  if (!body || !isVisibility(visibility)) return null;
-  return { body, visibility };
+  const tags = parseTags(raw.tags);
+  if (!body || !isVisibility(visibility) || !tags) return null;
+  return { body, visibility, tags };
 }
 
 export function parsePostPatch(input: unknown) {

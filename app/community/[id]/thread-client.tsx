@@ -2,22 +2,9 @@
 
 import { useState } from 'react';
 import { callApi } from '../../components/call-api';
-import { PostCard } from '../community-client';
+import { AuthorChip, PostCard, type Post } from '../community-client';
 
-type Post = {
-  id: string;
-  author: { handle: string; displayName: string };
-  body: string;
-  visibility: string;
-  createdAt: string;
-  edited: boolean;
-  likes: number;
-  liked: boolean;
-  comments: number;
-  mine: boolean;
-};
-
-type Comment = { id: string; author: { handle: string; displayName: string }; body: string; createdAt: string; mine: boolean };
+type Comment = { id: string; author: { handle: string; displayName: string; hasAvatar?: boolean }; body: string; createdAt: string; mine: boolean };
 
 export function Thread({ post, comments, suspended, readonly }: { post: Post; comments: Comment[]; suspended: boolean; readonly?: boolean }) {
   const [items, setItems] = useState(comments);
@@ -29,7 +16,7 @@ export function Thread({ post, comments, suspended, readonly }: { post: Post; co
     event.preventDefault();
     const { ok, data } = await callApi<{ id?: string; error?: string }>(`/api/posts/${post.id}/comments`, { method: 'POST', body: { body: text } });
     if (ok && data.id) {
-      setItems((current) => [...current, { id: data.id!, author: { handle: 'you', displayName: 'You' }, body: text, createdAt: new Date().toISOString(), mine: true }]);
+      setItems((current) => [...current, { id: data.id!, author: { handle: '', displayName: 'You', hasAvatar: false }, body: text, createdAt: new Date().toISOString(), mine: true }]);
       setText('');
       setError('');
     } else setError(data.error ?? 'Could not comment');
@@ -54,7 +41,7 @@ export function Thread({ post, comments, suspended, readonly }: { post: Post; co
       <ol className="list">
         {items.map((comment) => (
           <li key={comment.id} className="panel">
-            <p className="note">{comment.author.displayName} · @{comment.author.handle}</p>
+            <p className="note">{comment.author.handle ? <AuthorChip author={comment.author} /> : <strong>{comment.author.displayName}</strong>}</p>
             <p className="post-body">{comment.body}</p>
             {comment.mine && !suspended && !readonly && <button className="secondary" type="button" onClick={() => removeComment(comment.id)}>Delete</button>}
           </li>

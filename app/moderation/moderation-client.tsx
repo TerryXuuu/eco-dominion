@@ -49,20 +49,20 @@ export function Queue({ reports }: { reports: Report[] }) {
               label: 'Action',
               value: (report) => report.status,
               render: (report) => (
-                <div className="row">
+                <div className="queue-actions">
                   {(report.subjectType === 'post' || report.subjectType === 'comment') && (
                     <>
                       <button type="button" onClick={() => act(report.id, 'hide')}>Hide</button>
-                      <button className="secondary" type="button" onClick={() => act(report.id, 'restore')}>Restore</button>
+                      <button type="button" onClick={() => act(report.id, 'restore')}>Restore</button>
                     </>
                   )}
                   {report.subjectType !== 'match' && (
                     <>
                       <button type="button" onClick={() => act(report.id, 'suspend')}>Suspend</button>
-                      <button className="secondary" type="button" onClick={() => act(report.id, 'unsuspend')}>Restore account</button>
+                      <button type="button" onClick={() => act(report.id, 'unsuspend')}>Unsuspend</button>
                     </>
                   )}
-                  <button className="secondary" type="button" onClick={() => act(report.id, 'dismiss')}>Dismiss</button>
+                  <button className="quiet" type="button" onClick={() => act(report.id, 'dismiss')}>Dismiss</button>
                 </div>
               ),
             },

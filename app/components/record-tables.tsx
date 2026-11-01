@@ -48,7 +48,7 @@ export function LeaderboardTable({ rows }: { rows: BoardRow[] }) {
   );
 }
 
-export type OpponentRow = { handle: string; games: number; wins: number; losses: number; draws: number };
+export type OpponentRow = { handle: string; displayName: string; games: number; wins: number; losses: number; draws: number };
 
 export function OpponentTable({ rows }: { rows: OpponentRow[] }) {
   return (
@@ -56,7 +56,7 @@ export function OpponentTable({ rows }: { rows: OpponentRow[] }) {
       rowKey={(row) => row.handle}
       rows={rows}
       columns={[
-        { id: 'handle', label: 'Opponent', value: (row) => row.handle, render: (row) => <Link href={`/players/${row.handle}`}>@{row.handle}</Link> },
+        { id: 'name', label: 'Opponent', value: (row) => row.displayName, render: (row) => <Link href={`/players/${row.handle}`}>{row.displayName}</Link> },
         { id: 'games', label: 'Games', value: (row) => row.games },
         { id: 'wins', label: 'Wins', value: (row) => row.wins },
         { id: 'losses', label: 'Losses', value: (row) => row.losses },
@@ -98,7 +98,6 @@ export function PeopleTable({ title, rows }: { title: string; rows: PersonRow[] 
           rows={rows}
           columns={[
             { id: 'name', label: 'Name', value: (row) => row.displayName, render: (row) => <Link href={`/players/${row.handle}`}>{row.displayName}</Link> },
-            { id: 'handle', label: 'Handle', value: (row) => row.handle },
           ]}
         />
       )}
