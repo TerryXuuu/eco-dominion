@@ -2,24 +2,28 @@ import { SiteHeader } from '../components/site-header';
 import { LeaderboardTable } from '../components/record-tables';
 import { withTransaction } from '@/lib/db';
 import { leaderboard } from '@/lib/match-service';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function LeaderboardPage() {
-  const { body } = await withTransaction((client) => leaderboard(client));
+  const [{ body }, lang] = await Promise.all([withTransaction((client) => leaderboard(client)), getLang()]);
+  const text = copy(lang).board;
   return (
     <>
       <SiteHeader />
       <main className="shell stack">
-        <h1>Casual rating</h1>
-        <p className="note">Elo from casual-queue matches only (K=32, everyone starts at 1000). Private rooms are unrated, and ranked play is not enabled. Players with non-public profiles are listed without their name. Click a heading to sort, or type in a column to filter.</p>
-        {body.entries.length === 0 && <p className="note">No rated matches yet.</p>}
+        <h1>{text.title}</h1>
+        <p className="note">{text.note}</p>
+        {body.entries.length === 0 && <p className="note">{text.empty}</p>}
         {body.entries.length > 0 && (
           <LeaderboardTable
+            lang={lang}
             rows={body.entries.map((row) => ({
               rank: row.rank,
-              player: row.displayName ?? 'Hidden player',
+              player: row.displayName ?? text.hidden,
               rating: row.rating,
               games: row.games,
             }))}

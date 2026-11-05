@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { DataTable } from '../components/data-table';
+import { say } from '@/lib/locale-text';
+import type { Lang } from '@/lib/i18n';
 
 export type NoticeRow = {
   id: string;
@@ -13,35 +15,36 @@ export type NoticeRow = {
   createdAt: string;
 };
 
-export function InboxTable({ rows, labels }: { rows: NoticeRow[]; labels: Record<string, string> }) {
+export function InboxTable({ rows, labels, lang = 'en' }: { rows: NoticeRow[]; labels: Record<string, string>; lang?: Lang }) {
   return (
     <DataTable
+      lang={lang}
       rowKey={(row) => row.id}
       rows={rows}
       columns={[
         {
           id: 'event',
-          label: 'Event',
-          value: (row) => `${row.actor?.displayName ?? 'A moderator'} ${labels[row.kind] ?? row.kind}`,
+          label: say(lang, 'Event', '事件'),
+          value: (row) => `${row.actor?.displayName ?? say(lang, 'A moderator', '版主')} ${labels[row.kind] ?? row.kind}`,
           render: (row) => (
             <span>
               {row.read ? '' : '● '}
-              {row.actor ? <Link href={`/players/${row.actor.handle}`}>{row.actor.displayName}</Link> : 'A moderator'} {labels[row.kind] ?? row.kind}
+              {row.actor ? <Link href={`/players/${row.actor.handle}`}>{row.actor.displayName}</Link> : say(lang, 'A moderator', '版主')} {labels[row.kind] ?? row.kind}
             </span>
           ),
         },
         {
           id: 'open',
-          label: 'Open',
+          label: say(lang, 'Open', '打开'),
           value: (row) => row.postId || row.code || '',
           render: (row) => (
             <>
-              {row.postId && <Link href={`/community/${row.postId}`}>Open post</Link>}
-              {row.code && <span>Code {row.code}</span>}
+              {row.postId && <Link href={`/community/${row.postId}`}>{say(lang, 'Open post', '打开帖子')}</Link>}
+              {row.code && <span>{say(lang, 'Code', '代码')} {row.code}</span>}
             </>
           ),
         },
-        { id: 'when', label: 'When', value: (row) => row.createdAt, render: (row) => `${row.createdAt.slice(0, 16).replace('T', ' ')} UTC` },
+        { id: 'when', label: say(lang, 'When', '时间'), value: (row) => row.createdAt, render: (row) => `${row.createdAt.slice(0, 16).replace('T', ' ')} UTC` },
       ]}
     />
   );

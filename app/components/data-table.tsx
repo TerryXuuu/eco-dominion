@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
+import type { Lang } from '@/lib/i18n';
 
 export type Column<T> = {
   id: string;
@@ -9,7 +10,8 @@ export type Column<T> = {
   render?: (row: T) => ReactNode;
 };
 
-export function DataTable<T>({ columns, rows, rowKey }: { columns: Column<T>[]; rows: T[]; rowKey: (row: T) => string }) {
+export function DataTable<T>({ columns, rows, rowKey, lang = 'en' }: { columns: Column<T>[]; rows: T[]; rowKey: (row: T) => string; lang?: Lang }) {
+  const filter = lang === 'zh' ? '筛选' : 'Filter';
   const [sortId, setSortId] = useState<string | null>(null);
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -55,8 +57,8 @@ export function DataTable<T>({ columns, rows, rowKey }: { columns: Column<T>[]; 
               <input
                 className="column-filter"
                 value={filters[column.id] ?? ''}
-                aria-label={`Filter ${column.label}`}
-                placeholder="Filter"
+                aria-label={`${filter} ${column.label}`}
+                placeholder={filter}
                 onChange={(event) => setFilters((current) => ({ ...current, [column.id]: event.target.value }))}
               />
             </th>

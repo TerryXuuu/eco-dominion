@@ -1,4 +1,6 @@
 import { withTransaction } from '@/lib/db';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
 
 const DEFAULTS = {
   copyright: '© Eco Dominion. All rights reserved.',
@@ -21,11 +23,13 @@ export async function siteCopy() {
 }
 
 export async function SiteFooter() {
-  const copy = await siteCopy();
+  const [setting, lang] = await Promise.all([siteCopy(), getLang()]);
+  const text = copy(lang);
+  const copyright = lang === 'zh' && setting.copyright === DEFAULTS.copyright ? text.footer.rights : setting.copyright;
   return (
     <footer className="site-footer">
-      <span>{copy.copyright}</span>
-      <span>{copy.contacts}</span>
+      <span>{copyright}</span>
+      <span>{setting.contacts}</span>
     </footer>
   );
 }

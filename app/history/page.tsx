@@ -3,30 +3,32 @@ import { SiteHeader } from '../components/site-header';
 import { HistoryTable } from '../components/record-tables';
 import { history } from '@/lib/match-service';
 import { pageActor } from '@/lib/page-actor';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const REASON: Record<string, string> = { score: 'final score', domination: 'domination', concession: 'surrender', timeout: 'timeouts' };
-
 export default async function HistoryPage() {
-  const { data } = await pageActor((client, userId) => history(client, userId));
+  const [{ data }, lang] = await Promise.all([pageActor((client, userId) => history(client, userId)), getLang()]);
+  const text = copy(lang).history;
+  const reason: Record<string, string> = { score: text.scoreReason, domination: text.domination, concession: text.surrender, timeout: text.timeouts };
   const matches = (data.body as Awaited<ReturnType<typeof history>>['body']).matches.map((match) => ({
     ...match,
     opponent: match.opponentName,
     when: new Date(match.finishedAt).toISOString().slice(0, 16).replace('T', ' '),
-    result: match.outcome === 'win' ? 'Win' : match.outcome === 'loss' ? 'Loss' : 'Draw',
-    detail: `${match.mode === 'casual' ? 'Casual' : 'Private'} · ${REASON[match.reason] ?? match.reason}`,
+    result: match.outcome === 'win' ? text.win : match.outcome === 'loss' ? text.loss : text.draw,
+    detail: `${match.mode === 'casual' ? text.casual : text.private} · ${reason[match.reason] ?? match.reason}`,
     score: match.scores ? `${match.scores[match.seat]}–${match.scores[1 - match.seat]}` : '—',
-    ratingLabel: match.rating ? `${match.rating.before} → ${match.rating.after}` : 'Unrated',
+    ratingLabel: match.rating ? `${match.rating.before} → ${match.rating.after}` : text.unrated,
   }));
   return (
     <>
       <SiteHeader />
       <main className="shell stack">
-        <h1>Match history</h1>
-        {matches.length === 0 && <p className="note">No finished matches yet. <Link href="/play">Play one</Link>.</p>}
-        {matches.length > 0 && <HistoryTable rows={matches} />}
+        <h1>{text.title}</h1>
+        {matches.length === 0 && <p className="note">{text.empty} <Link href="/play">{text.play}</Link>.</p>}
+        {matches.length > 0 && <HistoryTable lang={lang} rows={matches} />}
       </main>
     </>
   );

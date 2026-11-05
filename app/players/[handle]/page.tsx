@@ -5,6 +5,8 @@ import { getRelationship } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
 import { viewProfile } from '@/lib/profile-service';
 import { PlayerActions } from './player-actions';
+import { getLang } from '@/lib/lang';
+import { say } from '@/lib/locale-text';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,6 +22,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
     return { profile, relationship };
   });
   if (data.profile.status !== 200) notFound();
+  const lang = await getLang();
   const profile = data.profile.body;
   const relationship = data.relationship && data.relationship.status === 200 ? data.relationship.body : null;
   return (
@@ -31,11 +34,11 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
           <div>
             <h1>{profile.displayName}</h1>
             <p className="note">@{profile.handle}</p>
-            <p>{profile.bio || 'No biography yet.'}</p>
+            <p>{profile.bio || say(lang, 'No biography yet.', '还没有简介。')}</p>
           </div>
         </article>
-        {relationship && <PlayerActions handle={profile.handle} initial={relationship} suspended={suspended} />}
-        {!relationship && <p className="note">This is you.</p>}
+        {relationship && <PlayerActions lang={lang} handle={profile.handle} initial={relationship} suspended={suspended} />}
+        {!relationship && <p className="note">{say(lang, 'This is you.', '这是你。')}</p>}
       </main>
     </>
   );

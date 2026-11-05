@@ -66,7 +66,7 @@ function event(s,id){s.event=id;const p=s.active,q=other(p);
 function overflow(s){for(const owner of [s.active,other(s.active)]){const n=s.players[owner].hand.length-7;if(n>0&&!s.choices.some(c=>c.kind==='discard'&&c.owner===owner))s.choices.unshift({kind:'discard',owner,count:n});}}
 function start(s){
  s.phase='refresh';s.modifiers=[];s.immunityUsed=[];s.choices=[];for(const r of REGIONS)s.regions[r].broken=[];
- const p=s.active,ps=s.players[p];ps.turns++;ps.max=Math.min(10,Math.max(3,ps.turns));ps.energy=ps.max;
+ const p=s.active,ps=s.players[p];ps.turns++;ps.max=Math.min(10,ps.turns+2);ps.energy=ps.max;
  if(s.regions.water.lastController===p&&!s.regions.water.denied.includes(p))reserve(s,p,here(s,'water',p).filter(x=>x.card==='beaver').length);
  s.phase='draw';if(!(p===s.first&&ps.turns===1))draw(s,p,2);
  overflow(s);s.afterChoices='event';if(!s.choices.length)advance(s);

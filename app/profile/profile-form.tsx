@@ -3,8 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { OwnerProfile } from '@/lib/profile-policy';
+import { copy, type Lang } from '@/lib/i18n';
+import { say } from '@/lib/locale-text';
 
-export function ProfileForm({ profile }: { profile: OwnerProfile }) {
+export function ProfileForm({ profile, lang }: { profile: OwnerProfile; lang: Lang }) {
+  const text = copy(lang).profile;
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -26,10 +29,10 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
     setPending(false);
     if (!response.ok) {
       URL.revokeObjectURL(preview);
-      setError(typeof payload.error === 'string' ? payload.error : 'Unable to upload avatar');
+      setError(typeof payload.error === 'string' ? payload.error : say(lang, 'Unable to upload avatar', '无法上传头像'));
       return;
     }
-    setMessage('Avatar updated.');
+    setMessage(text.avatarSaved);
     location.reload();
   }
 
@@ -53,10 +56,10 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
     const body = await response.json().catch(() => ({}));
     setPending(false);
     if (!response.ok) {
-      setError(typeof body.error === 'string' ? body.error : 'Unable to save profile');
+      setError(typeof body.error === 'string' ? body.error : say(lang, 'Unable to save profile', '无法保存资料'));
       return;
     }
-    setMessage('Profile saved.');
+    setMessage(text.saved);
   }
 
   const initial = profile.displayName.trim().slice(0, 1).toUpperCase() || '?';
@@ -68,35 +71,35 @@ export function ProfileForm({ profile }: { profile: OwnerProfile }) {
           ? <img className="avatar large" src={avatar} alt="" onError={() => setHasAvatar(false)} />
           : <span className="avatar-fallback large" aria-hidden="true">{initial}</span>}
         <label className="button secondary avatar-pick">
-          {pending ? 'Uploading…' : 'Upload avatar'}
+          {pending ? text.uploading : text.upload}
           <input name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={pending} onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)} />
         </label>
-        <p className="note">JPEG, PNG, WebP, GIF · 1.5 MB</p>
+        <p className="note">{text.hint}</p>
       </div>
       <div className="profile-fields">
-        <h1>Your profile</h1>
-        <p className="note wide">{profile.email} · {profile.roles.join(', ') || 'player'} · {profile.status}</p>
+        <h1>{text.title}</h1>
+        <p className="note wide">{profile.email} · {profile.roles.map((role) => copy(lang).role[`${role.slice(0, 1).toUpperCase()}${role.slice(1)}` as 'Admin' | 'Moderator' | 'Guest' | 'Player'] ?? role).join(', ') || copy(lang).role.Player} · {profile.status === 'suspended' ? say(lang, 'suspended', '已封禁') : profile.status === 'active' ? say(lang, 'active', '正常') : profile.status}</p>
         {(profile.roles.some((role) => role === 'moderator' || role === 'admin') || profile.roles.includes('admin')) && (
           <p className="wide">
-            {profile.roles.some((role) => role === 'moderator' || role === 'admin') && <Link href="/moderation">Moderation queue</Link>}
-            {profile.roles.includes('admin') && <> · <Link href="/admin">Admin console</Link></>}
+            {profile.roles.some((role) => role === 'moderator' || role === 'admin') && <Link href="/moderation">{text.moderation}</Link>}
+            {profile.roles.includes('admin') && <> · <Link href="/admin">{text.admin}</Link></>}
           </p>
         )}
-        {profile.status === 'suspended' && <p className="error wide">Your account is suspended; you can read but not make changes.</p>}
-        <label>Display name<input name="displayName" defaultValue={profile.displayName} maxLength={40} required /></label>
-        <label>Handle<input name="handle" defaultValue={profile.handle} minLength={3} maxLength={24} required /></label>
-        <label>Visibility
+        {profile.status === 'suspended' && <p className="error wide">{text.suspended}</p>}
+        <label>{text.display}<input name="displayName" defaultValue={profile.displayName} maxLength={40} required /></label>
+        <label>{text.handle}<input name="handle" defaultValue={profile.handle} minLength={3} maxLength={24} required /></label>
+        <label>{text.visibility}
           <select name="visibility" defaultValue={profile.visibility}>
-            <option value="public">Public</option>
-            <option value="friends">Friends</option>
-            <option value="private">Private</option>
+            <option value="public">{copy(lang).community.public}</option>
+            <option value="friends">{copy(lang).community.friends}</option>
+            <option value="private">{copy(lang).community.private}</option>
           </select>
         </label>
-        <label>Locale<input name="locale" defaultValue={profile.locale} pattern="[a-z]{2}-[A-Z]{2}" required /></label>
-        <label className="wide">Bio<textarea name="bio" defaultValue={profile.bio} maxLength={280} /></label>
+        <label>{text.locale}<input name="locale" defaultValue={profile.locale} pattern="[a-z]{2}-[A-Z]{2}" required /></label>
+        <label className="wide">{text.bio}<textarea name="bio" defaultValue={profile.bio} maxLength={280} /></label>
         {error && <p className="error wide">{error}</p>}
         {message && <p className="wide">{message}</p>}
-        <button disabled={pending} type="submit">{pending ? 'Saving…' : 'Save profile'}</button>
+        <button disabled={pending} type="submit">{pending ? text.saving : text.save}</button>
       </div>
     </form>
   );

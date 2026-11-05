@@ -5,7 +5,13 @@ import { withTransaction } from '@/lib/db';
 import { CASUAL_SEASON_ID } from '@/lib/match-rules';
 import { levelOf, rankOf } from '@/lib/standing';
 import { RankMark } from './rank-mark';
+import { LanguageSwitch } from './language-switch';
+import { ThemeSwitch } from './theme-switch';
 import { signOut } from '../profile/actions';
+import { logoUrl, variantFor } from '@/lib/artwork';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
+import { getTheme } from '@/lib/theme';
 
 export function roleLabel(roles: string[]) {
   if (roles.includes('admin')) return 'Admin';
@@ -58,42 +64,45 @@ async function signedInViewer() {
 
 /** `email` is ignored. The header reads the session itself so a page cannot forget who is signed in. */
 export async function SiteHeader(_legacy?: { email?: string | null }) {
-  const { paused, viewer } = await signedInViewer();
+  const [{ paused, viewer }, lang, theme] = await Promise.all([signedInViewer(), getLang(), getTheme()]);
+  const text = copy(lang);
+  const rank = viewer ? rankOf(viewer.level) : null;
   return (
     <header className="shell topbar">
       <Link className="brand" href="/">
-        <span className="seal"><img src="/brand/logo.jpg" alt="" /></span>
-        <strong>Eco Dominion</strong>
+        <img className="brand-logo" src={logoUrl(theme, variantFor(lang))} alt="Eco Dominion" />
       </Link>
       <nav className="nav">
-        <Link href={viewer ? '/home' : '/'} prefetch={false}>Home</Link>
-        <Link href="/rules" prefetch={false}>Rulings</Link>
-        <Link href="/library" prefetch={false}>Library</Link>
-        <Link href="/leaderboard" prefetch={false}>Leaderboard</Link>
-        <Link href="/community" prefetch={false}>Community</Link>
-        <Link href="/play" prefetch={false}>Play</Link>
-        <Link href="/history" prefetch={false}>History</Link>
-        {viewer?.role === 'Moderator' || viewer?.role === 'Admin' ? <Link href="/moderation" prefetch={false}>Moderation</Link> : null}
-        {viewer?.role === 'Admin' && <Link href="/admin" prefetch={false}>Admin</Link>}
-        {viewer ? (
+        <Link href={viewer ? '/home' : '/'} prefetch={false}>{text.nav.home}</Link>
+        <Link href="/rules" prefetch={false}>{text.nav.rulings}</Link>
+        <Link href="/library" prefetch={false}>{text.nav.library}</Link>
+        <Link href="/leaderboard" prefetch={false}>{text.nav.leaderboard}</Link>
+        <Link href="/community" prefetch={false}>{text.nav.community}</Link>
+        <Link href="/play" prefetch={false}>{text.nav.play}</Link>
+        <Link href="/history" prefetch={false}>{text.nav.history}</Link>
+        {viewer?.role === 'Moderator' || viewer?.role === 'Admin' ? <Link href="/moderation" prefetch={false}>{text.nav.moderation}</Link> : null}
+        {viewer?.role === 'Admin' && <Link href="/admin" prefetch={false}>{text.nav.admin}</Link>}
+        <ThemeSwitch theme={theme} />
+        <LanguageSwitch lang={lang} />
+        {viewer && rank ? (
           <span className="account">
             <Link className="who-link" href="/home">
               {viewer.avatar && <img className="avatar" src="/api/profile/avatar" alt="" />}
               <RankMark level={viewer.level} size={26} />
               <span className="who">
                 <strong>{viewer.name}</strong>
-                <span className="role">{rankOf(viewer.level).name} · Lv {viewer.level} · {viewer.role}</span>
+                <span className="role">{text.rank[rank.name as keyof typeof text.rank]} · Lv {viewer.level} · {text.role[viewer.role as keyof typeof text.role]}</span>
               </span>
             </Link>
-            <Link className="button" href="/profile">Profile</Link>
+            <Link className="button" href="/profile">{text.nav.profile}</Link>
             <form action={signOut}>
-              <button className="secondary" type="submit">Log out</button>
+              <button className="secondary" type="submit">{text.nav.logout}</button>
             </form>
           </span>
-        ) : paused ? <span className="role">Session paused</span> : (
+        ) : paused ? <span className="role">{text.nav.paused}</span> : (
           <>
-            <Link href="/login">Log in</Link>
-            <Link href="/register">Register</Link>
+            <Link href="/login">{text.nav.login}</Link>
+            <Link href="/register">{text.nav.register}</Link>
           </>
         )}
       </nav>

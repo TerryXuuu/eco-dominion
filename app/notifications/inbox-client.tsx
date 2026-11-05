@@ -1,8 +1,10 @@
 'use client';
 
 import { callApi } from '../components/call-api';
+import { say } from '@/lib/locale-text';
+import type { Lang } from '@/lib/i18n';
 
-export function MarkRead() {
+export function MarkRead({ lang }: { lang: Lang }) {
   return (
     <button
       className="secondary"
@@ -12,7 +14,7 @@ export function MarkRead() {
         location.reload();
       }}
     >
-      Mark all as read
+      {say(lang, 'Mark all as read', '全部标为已读')}
     </button>
   );
 }

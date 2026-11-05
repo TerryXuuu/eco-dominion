@@ -6,12 +6,15 @@ import { getPost } from '@/lib/community-service';
 import { withTransaction } from '@/lib/db';
 import { pageActor } from '@/lib/page-actor';
 import { Thread } from './thread-client';
+import { getLang } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const lang = await getLang();
+  const heading = lang === 'zh' ? '帖子' : 'Post';
   const identity = await currentIdentity();
   if (!identity) {
     const data = await withTransaction((client) => getPost(client, PUBLIC_READER, id));
@@ -20,8 +23,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <>
         <SiteHeader />
         <main className="shell stack">
-          <h1>Post</h1>
-          <Thread post={data.body.post} comments={data.body.comments} suspended={false} readonly />
+          <h1>{heading}</h1>
+          <Thread lang={lang} post={data.body.post} comments={data.body.comments} suspended={false} readonly />
         </main>
       </>
     );
@@ -37,8 +40,8 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
     <>
       <SiteHeader />
       <main className="shell stack">
-        <h1>Post</h1>
-        <Thread post={thread.post} comments={thread.comments} suspended={suspended} readonly={data.readonly} />
+        <h1>{heading}</h1>
+        <Thread lang={lang} post={thread.post} comments={thread.comments} suspended={suspended} readonly={data.readonly} />
       </main>
     </>
   );

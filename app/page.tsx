@@ -2,10 +2,14 @@ import Link from 'next/link';
 import { SiteHeader } from './components/site-header';
 import { LandingStage } from './landing-stage';
 import { auth, authConfigured } from '@/lib/auth';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  const lang = await getLang();
+  const text = copy(lang).landing;
   let email: string | null = null;
   if (authConfigured) {
     const { data } = await auth.getSession();
@@ -16,12 +20,12 @@ export default async function HomePage() {
       <LandingStage>
         <SiteHeader email={email} />
         <section className="landing-copy">
-          <p className="eyebrow">Four realms · eight turns</p>
-          <h1>Hold the living dominion.</h1>
-          <p className="lede">Forest, water, wild, and domain. The land answers the one who keeps it.</p>
+          <p className="eyebrow">{text.eyebrow}</p>
+          <h1>{text.title}</h1>
+          <p className="lede">{text.lede}</p>
           <div className="row">
-            <Link className="button" href={email ? '/play' : '/register'}>{email ? 'Enter the table' : 'Create account'}</Link>
-            <Link className="button secondary" href="/rules">Read the rulings</Link>
+            <Link className="button" href={email ? '/play' : '/register'}>{email ? text.enter : text.create}</Link>
+            <Link className="button secondary" href="/rules">{text.rulings}</Link>
           </div>
         </section>
       </LandingStage>

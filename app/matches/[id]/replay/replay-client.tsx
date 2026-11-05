@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import type { Projection, Seat } from '@/src/engine.mjs';
-import { titleOf } from '@/lib/cards';
 import { callApi } from '../../../components/call-api';
+import { cardTitle, phaseLabel, say } from '@/lib/locale-text';
+import { useArt } from '../../../components/art-context';
 import { BoardView, CardFace, resultText, type Player } from '../board-view';
 
 export type ReplayFrame = {
@@ -17,6 +18,7 @@ export type ReplayFrame = {
 };
 
 export function ReplayClient({ initial }: { initial: ReplayFrame }) {
+  const lang = useArt().lang;
   const [frame, setFrame] = useState(initial);
   const [busy, setBusy] = useState(false);
 
@@ -28,27 +30,27 @@ export function ReplayClient({ initial }: { initial: ReplayFrame }) {
   }
 
   const last = frame.step > 0 ? frame.moves[frame.step - 1] : null;
-  const who = (seat: Seat) => (seat === frame.seat ? 'You' : frame.players.find((player) => player.seat === seat)?.displayName ?? 'Opponent');
+  const who = (seat: Seat) => (seat === frame.seat ? say(lang, 'You', '你') : frame.players.find((player) => player.seat === seat)?.displayName ?? say(lang, 'Opponent', '对手'));
   return (
     <div className="stack">
       <section className="panel stack">
         <div className="row">
-          <button disabled={busy || frame.step === 0} onClick={() => goTo(0)}>Start</button>
-          <button disabled={busy || frame.step === 0} onClick={() => goTo(frame.step - 1)}>Back</button>
-          <button disabled={busy || frame.step === frame.total} onClick={() => goTo(frame.step + 1)}>Next</button>
-          <button disabled={busy || frame.step === frame.total} onClick={() => goTo(frame.total)}>End</button>
+          <button disabled={busy || frame.step === 0} onClick={() => goTo(0)}>{say(lang, 'Start', '开头')}</button>
+          <button disabled={busy || frame.step === 0} onClick={() => goTo(frame.step - 1)}>{say(lang, 'Back', '上一步')}</button>
+          <button disabled={busy || frame.step === frame.total} onClick={() => goTo(frame.step + 1)}>{say(lang, 'Next', '下一步')}</button>
+          <button disabled={busy || frame.step === frame.total} onClick={() => goTo(frame.total)}>{say(lang, 'End', '结尾')}</button>
         </div>
         <p>
-          Step {frame.step} of {frame.total}
-          {last && <> · {who(last.seat)}: {last.type}{last.auto ? ' (timeout)' : ''}</>}
-          {frame.game.result && <> · <strong>{resultText(frame.game, frame.seat, frame.players)}</strong></>}
+          {say(lang, `Step ${frame.step} of ${frame.total}`, `第 ${frame.step} 步，共 ${frame.total} 步`)}
+          {last && <> · {who(last.seat)}: {last.type}{last.auto ? say(lang, ' (timeout)', '（超时）') : ''}</>}
+          {frame.game.result && <> · <strong>{resultText(frame.game, frame.seat, frame.players, lang)}</strong></>}
         </p>
       </section>
-      <BoardView game={frame.game} seat={frame.seat} players={frame.players} />
+      <BoardView lang={lang} game={frame.game} seat={frame.seat} players={frame.players} />
       <section className="panel stack">
-        <h3>Your hand at this step</h3>
+        <h3>{say(lang, 'Your hand at this step', '这一步的手牌')}</h3>
         <div className="hand">{(frame.game.players[frame.seat].hand ?? []).map((card) => <CardFace key={card.uid} card={card} />)}</div>
-        <p className="note">Phase {frame.game.phase} · {titleOf(frame.game.event ?? 'no event')}</p>
+        <p className="note">{say(lang, 'Phase', '阶段')} {phaseLabel(lang, frame.game.phase)} · {cardTitle(lang, frame.game.event ?? 'no event')}</p>
       </section>
     </div>
   );

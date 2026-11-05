@@ -1,20 +1,46 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Fraunces, Noto_Serif_SC } from 'next/font/google';
 import './globals.css';
+import { ArtProvider } from './components/art-context';
 import { SiteFooter } from './components/site-footer';
+import { logoUrl, variantFor } from '@/lib/artwork';
+import { getLang } from '@/lib/lang';
+import { getTheme } from '@/lib/theme';
 
-export const metadata: Metadata = {
-  title: 'Eco Dominion',
-  description: 'Community platform for two-player Eco Dominion matches.',
-};
+const latin = Fraunces({
+  subsets: ['latin'],
+  weight: ['500', '700'],
+  display: 'swap',
+  variable: '--font-latin',
+});
 
-export const viewport = { width: 'device-width', initialScale: 1 };
+const chinese = Noto_Serif_SC({
+  weight: ['500', '700'],
+  display: 'swap',
+  variable: '--font-sc',
+  preload: false,
+});
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
+  return {
+    title: 'Eco Dominion',
+    description: 'Community platform for two-player Eco Dominion matches.',
+    icons: { icon: logoUrl(theme, variantFor(lang)) },
+  };
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
   return (
-    <html lang="en">
+    <html lang={lang === 'zh' ? 'zh-CN' : 'en'} className={`${latin.variable} ${chinese.variable}`}>
       <body>
-        {children}
-        <SiteFooter />
+        <ArtProvider theme={theme} lang={lang}>
+          {children}
+          <SiteFooter />
+        </ArtProvider>
       </body>
     </html>
   );

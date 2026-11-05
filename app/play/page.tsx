@@ -2,21 +2,27 @@ import { SiteHeader } from '../components/site-header';
 import { PlayLobby } from './play-lobby';
 import { activeMatchFor } from '@/lib/match-service';
 import { pageActor } from '@/lib/page-actor';
+import { copy } from '@/lib/i18n';
+import { getLang } from '@/lib/lang';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function PlayPage() {
-  const { email, data: activeMatchId } = await pageActor((client, userId) => activeMatchFor(client, userId));
+  const [{ email, data: activeMatchId }, lang] = await Promise.all([
+    pageActor((client, userId) => activeMatchFor(client, userId)),
+    getLang(),
+  ]);
+  const text = copy(lang).play;
   return (
     <>
       <SiteHeader email={email} />
       <main className="shell stack">
         <section className="hero compact">
-          <h1>Play</h1>
-          <p className="lede">Casual matches are rated with a separate casual rating. Private rooms are unrated. Ranked play stays off until balance testing.</p>
+          <h1>{text.title}</h1>
+          <p className="lede">{text.lede}</p>
         </section>
-        <PlayLobby activeMatchId={activeMatchId} />
+        <PlayLobby lang={lang} activeMatchId={activeMatchId} />
       </main>
     </>
   );

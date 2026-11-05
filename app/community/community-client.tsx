@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { callApi } from '../components/call-api';
+import { copy, type Lang } from '@/lib/i18n';
 
 type Author = { handle: string; displayName: string; hasAvatar?: boolean };
 
@@ -34,7 +35,8 @@ export type Post = {
   mine: boolean;
 };
 
-export function Compose({ suspended }: { suspended: boolean }) {
+export function Compose({ suspended, lang }: { suspended: boolean; lang: Lang }) {
+  const text = copy(lang).community;
   const [body, setBody] = useState('');
   const [tags, setTags] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -42,7 +44,7 @@ export function Compose({ suspended }: { suspended: boolean }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (suspended) return <p className="note">Your account is suspended; you can read the feed but not post.</p>;
+  if (suspended) return <p className="note">{text.suspended}</p>;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,25 +60,25 @@ export function Compose({ suspended }: { suspended: boolean }) {
       const data = (await response.json().catch(() => ({}))) as { post?: Post; error?: string };
       setBusy(false);
       if (response.ok && data.post) location.assign(`/community/${data.post.id}`);
-      else setError(data.error ?? 'Could not publish');
+      else setError(data.error ?? (lang === 'zh' ? '无法发布' : 'Could not publish'));
     } catch {
       setBusy(false);
-      setError('Connection lost; try again');
+      setError(lang === 'zh' ? '连接中断，请再试一次' : 'Connection lost; try again');
     }
   }
 
   return (
     <form className="panel stack" onSubmit={submit}>
       <label>
-        New post
+        {text.newPost}
         <textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={2000} rows={4} required />
       </label>
       <label>
-        Tags
-        <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="mouse, forest, opener" maxLength={120} />
+        {text.tags}
+        <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder={lang === 'zh' ? '啮鼠, 森林, 开局' : 'mouse, forest, opener'} maxLength={120} />
       </label>
       <label className="note">
-        Images, up to three
+        {text.images}
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
@@ -86,20 +88,21 @@ export function Compose({ suspended }: { suspended: boolean }) {
       </label>
       {files.length > 0 && <p className="note">{files.map((file) => file.name).join(', ')}</p>}
       <label>
-        Who can see it
+        {text.who}
         <select value={visibility} onChange={(event) => setVisibility(event.target.value)}>
-          <option value="public">Everyone</option>
-          <option value="friends">Friends</option>
-          <option value="private">Only me</option>
+          <option value="public">{text.public}</option>
+          <option value="friends">{text.friends}</option>
+          <option value="private">{text.private}</option>
         </select>
       </label>
-      <button disabled={busy || body.trim().length === 0} type="submit">{busy ? 'Publishing…' : 'Publish'}</button>
+      <button disabled={busy || body.trim().length === 0 || suspended} type="submit">{busy ? text.publishing : text.publish}</button>
       {error && <p className="error" role="alert">{error}</p>}
     </form>
   );
 }
 
-export function PostCard({ post, href, readonly }: { post: Post; href?: boolean; readonly?: boolean }) {
+export function PostCard({ post, href, readonly, lang = 'en' }: { post: Post; href?: boolean; readonly?: boolean; lang?: Lang }) {
+  const text = copy(lang).community;
   const [likes, setLikes] = useState(post.likes);
   const [liked, setLiked] = useState(post.liked);
 
@@ -115,8 +118,8 @@ export function PostCard({ post, href, readonly }: { post: Post; href?: boolean;
     <article className="panel stack">
       <p className="note">
         <AuthorChip author={post.author} />
-        {post.visibility !== 'public' && ` · ${post.visibility}`}
-        {post.edited && ' · edited'}
+        {post.visibility !== 'public' && ` · ${post.visibility === 'friends' ? text.friends : post.visibility === 'private' ? text.private : post.visibility}`}
+        {post.edited && (lang === 'zh' ? ' · 已编辑' : ' · edited')}
       </p>
       <p className="post-body">{post.body}</p>
       {post.tags && post.tags.length > 0 && (
@@ -130,14 +133,14 @@ export function PostCard({ post, href, readonly }: { post: Post; href?: boolean;
         </div>
       )}
       <div className="row">
-        {readonly ? <span>{likes} likes</span> : <button className="secondary" type="button" onClick={toggle}>{liked ? 'Unlike' : 'Like'} ({likes})</button>}
-        {href && <Link href={`/community/${post.id}`}>{post.comments} comments</Link>}
+        {readonly ? <span>{likes} {text.like}</span> : <button className="secondary" type="button" onClick={toggle}>{liked ? text.unlike : text.like} ({likes})</button>}
+        {href && <Link href={`/community/${post.id}`}>{post.comments} {text.comments}</Link>}
       </div>
     </article>
   );
 }
 
-export function Feed({ initial, nextCursor, scope, search = '', readonly }: { initial: Post[]; nextCursor: string | null; scope: string; search?: string; readonly?: boolean }) {
+export function Feed({ initial, nextCursor, scope, search = '', readonly, lang = 'en' }: { initial: Post[]; nextCursor: string | null; scope: string; search?: string; readonly?: boolean; lang?: Lang }) {
   const [posts, setPosts] = useState(initial);
   const [cursor, setCursor] = useState(nextCursor);
   const [busy, setBusy] = useState(false);
@@ -158,13 +161,13 @@ export function Feed({ initial, nextCursor, scope, search = '', readonly }: { in
 
   return (
     <>
-      {posts.length === 0 && <p className="note">No posts yet.</p>}
+      {posts.length === 0 && <p className="note">{copy(lang).community.empty}</p>}
       <ol className="list">
         {posts.map((post) => (
-          <li key={post.id}><PostCard post={post} href readonly={readonly} /></li>
+          <li key={post.id}><PostCard lang={lang} post={post} href readonly={readonly} /></li>
         ))}
       </ol>
-      {cursor && <button className="secondary" disabled={busy} onClick={more}>Older posts</button>}
+      {cursor && <button className="secondary" disabled={busy} onClick={more}>{lang === 'zh' ? '更早的帖子' : 'Older posts'}</button>}
     </>
   );
 }

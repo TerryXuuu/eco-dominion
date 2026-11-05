@@ -1,7 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type CSSProperties } from 'react';
+import { cardUrl } from '@/lib/artwork';
 import { CATALOG } from '@/lib/cards';
+import { useArt } from './components/art-context';
 
 const sparks = Array.from({ length: 16 }, (_, index) => ({
   left: `${(index * 37) % 100}%`,
@@ -10,6 +12,7 @@ const sparks = Array.from({ length: 16 }, (_, index) => ({
 }));
 
 export function LandingStage({ children }: { children: React.ReactNode }) {
+  const art = useArt();
   const stage = useRef<HTMLDivElement>(null);
 
   function follow(event: React.PointerEvent<HTMLDivElement>) {
@@ -22,7 +25,7 @@ export function LandingStage({ children }: { children: React.ReactNode }) {
   const ribbon = [...CATALOG, ...CATALOG];
 
   return (
-    <div className="stage" ref={stage} onPointerMove={follow}>
+    <div className="stage" ref={stage} onPointerMove={follow} style={{ '--landing-image': `url("${art.background}")` } as CSSProperties}>
       <div className="stage-bg"><div className="stage-photo" /></div>
       <div className="stage-glow" />
       <div className="fireflies" aria-hidden="true">
@@ -32,7 +35,7 @@ export function LandingStage({ children }: { children: React.ReactNode }) {
         {children}
         <div className="ribbon" aria-hidden="true">
           <div className="ribbon-track">
-            {ribbon.map((card, index) => <img key={`${card.id}-${index}`} src={`/cards/${card.id}.jpg`} alt="" />)}
+            {ribbon.map((card, index) => <img key={`${card.id}-${index}`} src={cardUrl(art.theme, 'txtfree', card.id)} alt="" />)}
           </div>
         </div>
       </div>

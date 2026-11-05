@@ -3,7 +3,10 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { CardInstance, Projection, Region, Seat } from '@/src/engine.mjs';
-import { CARD_BY_ID, KIND_LABEL, REGION_LABEL, REGION_ORDER, titleOf } from '@/lib/cards';
+import { CARD_BY_ID, REGION_ORDER } from '@/lib/cards';
+import { copy, type Lang } from '@/lib/i18n';
+import { cardTitle, shownEffect } from '@/lib/locale-text';
+import { useArt } from '../../components/art-context';
 import { anyLegalPlay, cardPlay } from '@/lib/hand-actions';
 
 type Play = { uid: string; region?: Region; target?: Region; species?: string };
@@ -21,6 +24,7 @@ export function HandFan({
   dock = false,
   prompt = null,
   extra = null,
+  lang = 'en',
 }: {
   game: Projection;
   seat: Seat;
@@ -34,7 +38,10 @@ export function HandFan({
   dock?: boolean;
   prompt?: ReactNode;
   extra?: ReactNode;
+  lang?: Lang;
 }) {
+  const text = copy(lang);
+  const art = useArt();
   const hand = game.players[seat].hand ?? [];
   const [hovered, setHovered] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
@@ -111,9 +118,9 @@ export function HandFan({
             onFocus={() => setHovered(card.uid)}
             onClick={() => activate(card)}
           >
-            <img src={`/cards/${face.id}.jpg`} alt="" />
+            <img src={art.card(face.id)} alt="" />
             <span className="fan-caption">
-              <strong>{titleOf(face.id)}</strong>
+              <strong>{cardTitle(lang, face.id)}</strong>
               {face.cost !== undefined && <span className="cost">{face.cost}</span>}
             </span>
           </button>
@@ -123,7 +130,7 @@ export function HandFan({
   );
 
   const kicker = def && focus
-    ? `${KIND_LABEL[def.kind]}${def.power !== undefined ? ` · power ${def.power}` : ''}${def.regions ? ` · ${def.regions.map((region) => REGION_LABEL[region]).join(' / ')}` : ''}`
+    ? `${text.kind[def.kind as keyof typeof text.kind] ?? def.kind}${def.power !== undefined ? ` · ${text.library.power} ${def.power}` : ''}${def.regions ? ` · ${def.regions.map((region) => text.region[region]).join(' / ')}` : ''}`
     : '';
   const regionChoices = plan && focus && myTurn && mode === 'play' && plan.legal && !plan.immediate
     ? (plan.needsSpecies
@@ -133,11 +140,11 @@ export function HandFan({
 
   const identity = def && focus && plan ? (
     <>
-      <h3>{titleOf(def.id)} <span lang="zh">{def.name}</span></h3>
-      <p>{def.effect}</p>
+      <h3>{cardTitle(lang, def.id)} {lang === 'en' && <span lang="zh">{def.name}</span>}</h3>
+      <p>{shownEffect(lang, def.id, def.effect)}</p>
     </>
   ) : !dock ? (
-    <p className="note">{hand.length ? 'Hover a card to read it. Click a playable card to lay it on the table.' : 'Your hand is empty.'}</p>
+    <p className="note">{hand.length ? (lang === 'zh' ? '悬停查看，点击可打出的牌放到桌上。' : 'Hover a card to read it. Click a playable card to lay it on the table.') : (lang === 'zh' ? '你的手牌是空的。' : 'Your hand is empty.')}</p>
   ) : null;
 
   const actions = (
@@ -153,33 +160,33 @@ export function HandFan({
               disabled={busy || (plan?.needsTarget && !target) || (plan?.needsSpecies && !species)}
               onClick={() => commit({ uid: focus.uid, region, ...(plan?.needsTarget && target ? { target } : {}), ...(plan?.needsSpecies ? { species } : {}) })}
             >
-              {REGION_LABEL[region]}
+              {text.region[region]}
             </button>
           ))}
         </div>
       )}
       {def && focus && plan && myTurn && mode === 'play' && plan.legal && !plan.immediate && plan.needsTarget && (
-        <label>{def.id === 'bison' ? 'Enemy region' : 'Region'}
+        <label>{def.id === 'bison' ? text.table.enemyRegion : text.table.region}
           <select value={target} onChange={(event) => setTarget(event.target.value as Region | '')}>
-            <option value="">Choose…</option>
-            {(def.id === 'bison' ? REGION_ORDER.filter((region) => game.regions[region].controller === (1 - seat)) : REGION_ORDER).map((region) => <option key={region} value={region}>{REGION_LABEL[region]}</option>)}
+            <option value="">{text.table.choose}</option>
+            {(def.id === 'bison' ? REGION_ORDER.filter((region) => game.regions[region].controller === (1 - seat)) : REGION_ORDER).map((region) => <option key={region} value={region}>{text.region[region]}</option>)}
           </select>
         </label>
       )}
       {def && focus && plan && myTurn && mode === 'play' && plan.legal && plan.needsSpecies && (
-        <label>Species to move
+        <label>{text.table.species}
           <select value={species} onChange={(event) => setSpecies(event.target.value)}>
-            <option value="">Choose…</option>
+            <option value="">{text.table.choose}</option>
             {game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1).map((item) => (
-              <option key={item.uid} value={item.uid}>{titleOf(item.card)} in {REGION_LABEL[item.region]}</option>
+              <option key={item.uid} value={item.uid}>{cardTitle(lang, item.card)} {text.table.in} {text.region[item.region]}</option>
             ))}
           </select>
         </label>
       )}
       {stuck && onPass && (
         <div className="row">
-          <button type="button" disabled={busy} onClick={onPass}>Pass</button>
-          <span className="note">No legal play this phase.</span>
+          <button type="button" disabled={busy} onClick={onPass}>{text.table.pass}</button>
+          <span className="note">{text.table.noPlay}</span>
         </div>
       )}
     </>

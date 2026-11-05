@@ -4,9 +4,14 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Seat } from '@/src/engine.mjs';
 import type { MatchView } from '@/lib/match-service';
-import { CARD_BY_ID, REGION_LABEL, REGION_ORDER, titleOf } from '@/lib/cards';
+import { CARD_BY_ID, REGION_ORDER } from '@/lib/cards';
+import { cardTitle, phaseLabel, say } from '@/lib/locale-text';
 import { anyLegalPlay } from '@/lib/hand-actions';
 import { callApi } from '../../components/call-api';
+import { LanguageSwitch } from '../../components/language-switch';
+import { ThemeSwitch } from '../../components/theme-switch';
+import { useArt } from '../../components/art-context';
+import { copy, type Lang } from '@/lib/i18n';
 import { BoardView } from './board-view';
 import { HandFan } from './hand-fan';
 import { MatchReport } from './match-report';
@@ -28,7 +33,9 @@ function useCountdown(deadline: string | null) {
   return Math.max(0, Math.ceil((Date.parse(deadline) - now) / 1000));
 }
 
-export function MatchClient({ initial }: { initial: MatchView }) {
+export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang }) {
+  const text = copy(lang).table;
+  const art = useArt();
   const [view, setView] = useState(initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -43,9 +50,9 @@ export function MatchClient({ initial }: { initial: MatchView }) {
     const { ok, status, data } = await callApi<MatchView | Unchanged>(`/api/matches/${initial.id}?v=${versionRef.current}`);
     if (ok && !('unchanged' in data)) setView(data);
     else if (ok) setView((current) => ({ ...current, deadline: data.deadline }));
-    else if (status === 0 || status === 503) setError('Connection lost; reconnecting…');
-    if (ok) setError((message) => (message.startsWith('Connection lost') ? '' : message));
-  }, [initial.id]);
+    else if (status === 0 || status === 503) setError(say(lang, 'Connection lost; reconnecting…', '连接中断，正在重连…'));
+    if (ok) setError((message) => (message.startsWith('Connection lost') || message.startsWith('连接中断') ? '' : message));
+  }, [initial.id, lang]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -102,7 +109,7 @@ export function MatchClient({ initial }: { initial: MatchView }) {
     setBusy(false);
     if (reply.ok) setView(reply.data.view);
     else {
-      setError(reply.data.error ?? 'Something went wrong; try again');
+      setError(reply.data.error ?? say(lang, 'Something went wrong; try again', '出了点问题，请再试一次'));
       if (reply.status === 409) refresh();
     }
   }
@@ -131,35 +138,37 @@ export function MatchClient({ initial }: { initial: MatchView }) {
       return;
     }
     setBusy(false);
-    setError(reply.data.error ?? 'Could not start a new game');
+    setError(reply.data.error ?? say(lang, 'Could not start a new game', '无法开始新对局'));
   }
 
   return (
     <>
       <header className="hud">
-        <Link href="/play">Leave</Link>
-        <strong>{practice ? 'Practice' : view.mode === 'casual' ? 'Casual' : 'Private'}</strong>
+        <Link href="/play">{text.leave}</Link>
+        <strong>{practice ? text.practice : view.mode === 'casual' ? text.casual : text.private}</strong>
         <span>
-          {finished ? 'Match over' : clockMine ? (myChoice ? 'Your choice' : 'Your turn') : pending ? (practice ? 'Grove is choosing' : 'Opponent is choosing') : practice ? 'Grove is playing' : "Opponent's turn"}
-          {!finished && <> · {game.phase}</>}
+          {finished ? text.over : clockMine ? (myChoice ? text.yourChoice : text.yourTurn) : pending ? (practice ? text.groveChoosing : text.opponentChoosing) : practice ? text.grovePlaying : text.opponentTurn}
+          {!finished && <> · {phaseLabel(lang, game.phase)}</>}
           {countdown !== null && !finished && <> · <span className={countdown <= 10 ? 'urgent' : ''}>{countdown}s</span></>}
-          {view.timeouts[seat] > 0 && !finished && <> · timeouts {view.timeouts[seat]}/3</>}
+          {view.timeouts[seat] > 0 && !finished && <> · {text.timeouts} {view.timeouts[seat]}/3</>}
         </span>
         <span className="hud-actions">
+          <ThemeSwitch theme={art.theme} />
+          <LanguageSwitch lang={lang} />
           {finished && (
             <>
-              <button type="button" disabled={busy} onClick={() => void newGame()}>New game</button>
-              <button type="button" className="secondary" onClick={() => setSummaryOpen((open) => !open)}>{summaryOpen ? 'Close summary' : 'Summary'}</button>
+              <button type="button" disabled={busy} onClick={() => void newGame()}>{text.newGame}</button>
+              <button type="button" className="secondary" onClick={() => setSummaryOpen((open) => !open)}>{summaryOpen ? text.closeSummary : text.summary}</button>
             </>
           )}
-          {canPlay && <button disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? 'End deployment' : 'Settle'}</button>}
-          {!finished && <button className="secondary" disabled={busy} onClick={() => window.confirm('Surrender this match? The other player wins.') && send('concede')}>Surrender</button>}
+          {canPlay && <button disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? text.endDeploy : text.settle}</button>}
+          {!finished && <button className="secondary" disabled={busy} onClick={() => window.confirm(text.surrenderAsk) && send('concede')}>{text.surrender}</button>}
         </span>
       </header>
       {error && <p className="hud-error" role="alert">{error}</p>}
 
       <div className="table-stage">
-        <BoardView game={game} seat={seat} players={players} />
+        <BoardView lang={lang} game={game} seat={seat} players={players} />
 
         {finished && summaryOpen && (
           <div className="table-overlay">
@@ -168,31 +177,31 @@ export function MatchClient({ initial }: { initial: MatchView }) {
         )}
 
         {myChoice && myChoice.kind !== 'discard' && (
-          <section className="choice-bar" aria-label="Your choice">
+          <section className="choice-bar" aria-label={text.yourChoice}>
             {myChoice.kind === 'rest' && (
               <>
-                <strong>Rest: add 2 stability</strong>
-                <div className="row">{(myChoice.options ?? []).map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
+                <strong>{text.rest}</strong>
+                <div className="row">{(myChoice.options ?? []).map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{copy(lang).region[region]}</button>)}</div>
               </>
             )}
             {myChoice.kind === 'invasion' && (
               <>
-                <strong>Invasion: choose the region</strong>
-                <div className="row">{REGION_ORDER.map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{REGION_LABEL[region]}</button>)}</div>
+                <strong>{text.invasion}</strong>
+                <div className="row">{REGION_ORDER.map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { region })}>{copy(lang).region[region]}</button>)}</div>
               </>
             )}
             {myChoice.kind === 'migration' && (
               <>
-                <strong>Migration</strong>
-                <label>Species<select value={species} onChange={(event) => setSpecies(event.target.value)}>
-                  <option value="">Choose…</option>
-                  {myMovers.map((item) => <option key={item.uid} value={item.uid}>{titleOf(item.card)} in {REGION_LABEL[item.region]}</option>)}
+                <strong>{text.migration}</strong>
+                <label>{text.species}<select value={species} onChange={(event) => setSpecies(event.target.value)}>
+                  <option value="">{text.choose}</option>
+                  {myMovers.map((item) => <option key={item.uid} value={item.uid}>{cardTitle(lang, item.card)} {text.in} {copy(lang).region[item.region]}</option>)}
                 </select></label>
                 <div className="row">
                   {species && CARD_BY_ID[myMovers.find((item) => item.uid === species)!.card].regions!
                     .filter((region) => region !== myMovers.find((item) => item.uid === species)!.region)
-                    .map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { species, region })}>Move to {REGION_LABEL[region]}</button>)}
-                  <button className="secondary" disabled={busy} onClick={() => send('choose', { skip: true })}>Skip</button>
+                    .map((region) => <button key={region} disabled={busy} onClick={() => send('choose', { species, region })}>{text.moveTo} {copy(lang).region[region]}</button>)}
+                  <button className="secondary" disabled={busy} onClick={() => send('choose', { skip: true })}>{text.skip}</button>
                 </div>
               </>
             )}
@@ -202,20 +211,22 @@ export function MatchClient({ initial }: { initial: MatchView }) {
         <div className="hand-dock">
           {myChoice?.kind === 'discard' ? (
             <HandFan
+              lang={lang}
               game={game}
               seat={seat}
               busy={busy}
               myTurn={false}
               mode="discard"
               dock
-              prompt={<p className="dock-prompt">Discard exactly {myChoice.count}</p>}
-              extra={<button type="button" className="dock-act" disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>Discard selected</button>}
+              prompt={<p className="dock-prompt">{text.discardExactly} {myChoice.count}</p>}
+              extra={<button type="button" className="dock-act" disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>{text.discardSelected}</button>}
               picked={picks}
               onPlay={() => undefined}
               onToggle={(uid) => setPicks((current) => (current.includes(uid) ? current.filter((item) => item !== uid) : [...current, uid]))}
             />
           ) : !myChoice && (
             <HandFan
+              lang={lang}
               game={game}
               seat={seat}
               busy={busy}

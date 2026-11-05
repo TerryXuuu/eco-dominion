@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { callApi } from '../components/call-api';
+import { copy, type Lang } from '@/lib/i18n';
 
 type Queue = { status: string; matchId: string | null };
 type Room = { code: string; status: string; matchId: string | null };
 
-export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
+export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | null; lang: Lang }) {
+  const text = copy(lang).play;
   const router = useRouter();
   const [queue, setQueue] = useState<Queue>({ status: 'idle', matchId: null });
   const [room, setRoom] = useState<Room | null>(null);
@@ -51,15 +53,15 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
     setBusy(false);
     if (ok) onOk(data);
     else if (data.matchId) go(data.matchId);
-    else setError(data.error ?? 'Something went wrong; try again');
+    else setError(data.error ?? text.failed);
   }
 
   if (activeMatchId) {
     return (
       <section className="panel stack">
-        <h2>You have a match in progress</h2>
-        <p className="note">Finish or concede it before starting another.</p>
-        <div className="row"><Link className="button" href={`/matches/${activeMatchId}`}>Return to your match</Link></div>
+        <h2>{text.inProgress}</h2>
+        <p className="note">{text.finishFirst}</p>
+        <div className="row"><Link className="button" href={`/matches/${activeMatchId}`}>{text.return}</Link></div>
       </section>
     );
   }
@@ -67,27 +69,27 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
   return (
     <div className="grid">
       <section className="panel stack">
-        <h2>Casual queue</h2>
+        <h2>{text.casual}</h2>
         {queue.status === 'waiting' ? (
           <>
-            <p className="note" role="status">Waiting for another player…</p>
-            <button className="secondary" disabled={busy} onClick={() => run<Queue>('/api/queue', 'DELETE', undefined, setQueue)}>Leave queue</button>
+            <p className="note" role="status">{text.waiting}</p>
+            <button className="secondary" disabled={busy} onClick={() => run<Queue>('/api/queue', 'DELETE', undefined, setQueue)}>{text.leave}</button>
           </>
         ) : (
-          <button disabled={busy} onClick={() => run<Queue>('/api/queue', 'POST', undefined, setQueue)}>Find a casual match</button>
+          <button disabled={busy} onClick={() => run<Queue>('/api/queue', 'POST', undefined, setQueue)}>{text.find}</button>
         )}
       </section>
       <section className="panel stack">
-        <h2>Practice</h2>
-        <p className="note">Grove takes the other seat immediately. Practice is unrated, so your casual rating stays where it is.</p>
-        <button disabled={busy} onClick={() => run<{ matchId: string }>('/api/practice', 'POST', undefined, (data) => data.matchId && go(data.matchId))}>Play Grove</button>
+        <h2>{text.practice}</h2>
+        <p className="note">{text.practiceNote}</p>
+        <button disabled={busy} onClick={() => run<{ matchId: string }>('/api/practice', 'POST', undefined, (data) => data.matchId && go(data.matchId))}>{text.playGrove}</button>
       </section>
       <section className="panel stack">
-        <h2>Private room</h2>
+        <h2>{text.room}</h2>
         {room?.status === 'open' ? (
           <>
-            <p>Share this code: <strong className="code" aria-label="Room code">{room.code}</strong></p>
-            <p className="note" role="status">Waiting for your guest to join…</p>
+            <p>{text.share} <strong className="code" aria-label="Room code">{room.code}</strong></p>
+            <p className="note" role="status">{text.guest}</p>
             <form
               className="stack"
               onSubmit={(event) => {
@@ -96,13 +98,13 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
                 run('/api/rooms/invite', 'POST', { code: room.code, handle }, () => undefined);
               }}
             >
-              <label>Invite a friend<input name="invite" placeholder="handle" minLength={3} maxLength={24} required /></label>
-              <button className="secondary" disabled={busy} type="submit">Send invite</button>
+              <label>{text.invite}<input name="invite" placeholder="handle" minLength={3} maxLength={24} required /></label>
+              <button className="secondary" disabled={busy} type="submit">{text.send}</button>
             </form>
-            <button className="secondary" disabled={busy} onClick={() => run<Room>(`/api/rooms/${room.code}`, 'DELETE', undefined, () => setRoom(null))}>Cancel room</button>
+            <button className="secondary" disabled={busy} onClick={() => run<Room>(`/api/rooms/${room.code}`, 'DELETE', undefined, () => setRoom(null))}>{text.cancel}</button>
           </>
         ) : (
-          <button disabled={busy} onClick={() => run<Room>('/api/rooms', 'POST', undefined, setRoom)}>Create a private room</button>
+          <button disabled={busy} onClick={() => run<Room>('/api/rooms', 'POST', undefined, setRoom)}>{text.create}</button>
         )}
         <form
           className="stack"
@@ -111,8 +113,8 @@ export function PlayLobby({ activeMatchId }: { activeMatchId: string | null }) {
             run<Room>('/api/rooms/join', 'POST', { code }, (data) => data.matchId && go(data.matchId));
           }}
         >
-          <label>Join with a code<input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} maxLength={6} placeholder="ABC234" /></label>
-          <button className="secondary" disabled={busy || code.trim().length !== 6} type="submit">Join room</button>
+          <label>{text.joinLabel}<input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} maxLength={6} placeholder="ABC234" /></label>
+          <button className="secondary" disabled={busy || code.trim().length !== 6} type="submit">{text.join}</button>
         </form>
       </section>
       {error && <p className="error" role="alert">{error}</p>}
