@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { callApi } from '../components/call-api';
 import { copy, type Lang } from '@/lib/i18n';
 
-type Queue = { status: string; matchId: string | null };
+type Queue = { status: string; matchId: string | null; mode?: string | null };
 type Room = { code: string; status: string; matchId: string | null };
 
 export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | null; lang: Lang }) {
@@ -25,15 +25,19 @@ export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | nul
   }, []);
 
   useEffect(() => {
-    if (queue.status === 'matched' && queue.matchId) go(queue.matchId);
     if (queue.status !== 'waiting') return;
     const timer = setInterval(async () => {
       const { ok, data } = await callApi<Queue>('/api/queue');
-      if (ok) setQueue(data);
+      if (!ok) return;
+      if (data.status === 'matched' && data.matchId) {
+        go(data.matchId);
+        return;
+      }
+      setQueue(data);
     }, 2000);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queue.status, queue.matchId]);
+  }, [queue.status]);
 
   useEffect(() => {
     if (room?.status === 'started' && room.matchId) go(room.matchId);
@@ -66,25 +70,46 @@ export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | nul
     );
   }
 
+  const waiting = queue.status === 'waiting';
+  const waitingRanked = waiting && queue.mode === 'ranked';
+  const waitingCasual = waiting && queue.mode !== 'ranked';
+  const find = (mode: 'ranked' | 'casual') => run<Queue>('/api/queue', 'POST', { mode }, (data) => {
+    if (data.status === 'matched' && data.matchId) go(data.matchId);
+    else setQueue(data);
+  });
+
   return (
-    <div className="grid">
-      <section className="panel stack">
-        <h2>{text.casual}</h2>
-        {queue.status === 'waiting' ? (
-          <>
+    <div className="modes">
+      <section className="panel mode-card">
+        <h2>{text.ranked}</h2>
+        <p className="note mode-lead">{text.rankedNote}</p>
+        {waitingRanked ? (
+          <div className="mode-actions">
             <p className="note" role="status">{text.waiting}</p>
             <button className="secondary" disabled={busy} onClick={() => run<Queue>('/api/queue', 'DELETE', undefined, setQueue)}>{text.leave}</button>
-          </>
+          </div>
         ) : (
-          <button disabled={busy} onClick={() => run<Queue>('/api/queue', 'POST', undefined, setQueue)}>{text.find}</button>
+          <button className="mode-go" disabled={busy || waitingCasual} onClick={() => find('ranked')}>{text.findRanked}</button>
         )}
       </section>
-      <section className="panel stack">
-        <h2>{text.practice}</h2>
-        <p className="note">{text.practiceNote}</p>
-        <button disabled={busy} onClick={() => run<{ matchId: string }>('/api/practice', 'POST', undefined, (data) => data.matchId && go(data.matchId))}>{text.playGrove}</button>
+      <section className="panel mode-card">
+        <h2>{text.casual}</h2>
+        <p className="note mode-lead">{text.casualNote}</p>
+        {waitingCasual ? (
+          <div className="mode-actions">
+            <p className="note" role="status">{text.waiting}</p>
+            <button className="secondary" disabled={busy} onClick={() => run<Queue>('/api/queue', 'DELETE', undefined, setQueue)}>{text.leave}</button>
+          </div>
+        ) : (
+          <button className="mode-go" disabled={busy || waitingRanked} onClick={() => find('casual')}>{text.find}</button>
+        )}
       </section>
-      <section className="panel stack">
+      <section className="panel mode-card">
+        <h2>{text.practice}</h2>
+        <p className="note mode-lead">{text.practiceNote}</p>
+        <button className="mode-go" disabled={busy} onClick={() => run<{ matchId: string }>('/api/practice', 'POST', undefined, (data) => data.matchId && go(data.matchId))}>{text.playGrove}</button>
+      </section>
+      <section className="panel mode-card">
         <h2>{text.room}</h2>
         {room?.status === 'open' ? (
           <>

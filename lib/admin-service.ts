@@ -236,10 +236,10 @@ export async function adminAct(client: Queryable, adminId: string, input: unknow
       [CASUAL_SEASON_ID, account.id],
     );
     const before = Number(current.rows[0].rating);
-    if (before === next) return fail(409, 'That is already the casual rating');
+    if (before === next) return fail(409, 'That is already the ladder rating');
     await client.query(`UPDATE rating SET rating = $3 WHERE season_id = $1 AND user_id = $2`, [CASUAL_SEASON_ID, account.id, next]);
     await writeAudit(client, adminId, 'rating.adjust', account.id, { before, after: next, reason, season: 'casual' });
-    message = `@${account.handle} casual rating ${before} → ${next}`;
+    message = `@${account.handle} ladder rating ${before} → ${next}`;
   } else {
     return fail(400, 'Choose an admin action');
   }

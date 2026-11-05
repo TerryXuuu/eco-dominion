@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { Projection, Seat } from '@/src/engine.mjs';
 import { matchReport, type ReportPlayer, type ReportSide } from '@/lib/match-report';
 import { say } from '@/lib/locale-text';
@@ -10,7 +9,6 @@ export function MatchReport({
   players,
   timeouts,
   rating,
-  matchId,
   onClose,
 }: {
   game: Projection;
@@ -18,7 +16,6 @@ export function MatchReport({
   players: ReportPlayer[];
   timeouts: [number, number];
   rating: { before: number; after: number } | null;
-  matchId: string;
   onClose?: () => void;
 }) {
   const lang = useArt().lang;
@@ -50,7 +47,7 @@ export function MatchReport({
         <div>
           <h2 className="report-headline">{headline}</h2>
           <p className="lede">{message}</p>
-          {rating && <p className="note">{say(lang, 'Casual rating', '休闲积分')} {rating.before} → {rating.after}</p>}
+          {rating && <p className="note">{say(lang, 'Ladder rating', '天梯分')} {rating.before} → {rating.after}</p>}
         </div>
         {onClose && <button type="button" className="secondary report-close" onClick={onClose}>{say(lang, 'Close', '关闭')}</button>}
       </div>
@@ -76,10 +73,10 @@ export function MatchReport({
         </table>
       </div>
       <div className="row report-actions">
-        <Link className="button" href={`/matches/${matchId}/replay`}>{say(lang, 'Watch replay', '观看回放')}</Link>
-        <Link className="button secondary" href="/history">{say(lang, 'History', '战绩')}</Link>
-        <Link className="button secondary" href="/play">{say(lang, 'Play again', '再来一局')}</Link>
+        <a className="button" href="/play">{say(lang, 'Back to the lobby', '返回对战大厅')}</a>
+        <a className="button secondary" href="/history">{say(lang, 'History', '战绩')}</a>
       </div>
+      <p className="note">{say(lang, 'The replay is in your history.', '回放可以在战绩里看。')}</p>
     </section>
   );
 }

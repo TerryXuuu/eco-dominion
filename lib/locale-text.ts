@@ -54,6 +54,7 @@ const PHASES: Record<string, string> = {
 };
 
 export function phaseLabel(lang: Lang, phase: string) {
+  if (phase === 'deploy' || phase === 'tactics') return lang === 'zh' ? '行动' : 'Play';
   if (lang !== 'zh') return phase;
   return PHASES[phase] ?? phase;
 }

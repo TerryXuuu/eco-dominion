@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -64,7 +64,7 @@ test('casual queue admits two players atomically into one match with both seats'
   const { db, ids } = await setup();
   const [ada, bea] = ids;
   const first = await tx(db, () => enterQueue(db, ada, T0));
-  assert.deepEqual(first.body, { status: 'waiting', matchId: null });
+  assert.deepEqual(first.body, { status: 'waiting', matchId: null, mode: 'casual' });
   const again = await tx(db, () => enterQueue(db, ada, T0 + 1));
   assert.equal(again.body.status, 'waiting');
   const second = await tx(db, () => enterQueue(db, bea, T0 + 2));
@@ -78,6 +78,30 @@ test('casual queue admits two players atomically into one match with both seats'
   const busy = await tx(db, () => createRoom(db, ada));
   assert.equal(busy.status, 409);
   assert.equal(busy.body.matchId, second.body.matchId);
+});
+
+test('ladder and casual queues stay apart, and a casual result does not move the ladder rating', async () => {
+  const { db, ids } = await setup();
+  const [ada, bea] = ids;
+  await tx(db, () => enterQueue(db, ada, T0, 'ranked'));
+  const casual = await tx(db, () => enterQueue(db, bea, T0 + 1, 'casual'));
+  assert.equal(casual.body.status, 'waiting');
+  assert.equal(casual.body.mode, 'casual');
+  assert.equal((await db.query(`SELECT count(*)::int AS n FROM match`)).rows[0].n, 0);
+  const ranked = await tx(db, () => enterQueue(db, bea, T0 + 2, 'ranked'));
+  assert.equal(ranked.body.status, 'matched');
+  assert.equal((await db.query(`SELECT mode FROM match`)).rows[0].mode, 'ranked');
+
+  const { db: casualDb, ids: casualIds } = await setup();
+  await tx(casualDb, () => enterQueue(casualDb, casualIds[0], T0));
+  const paired = await tx(casualDb, () => enterQueue(casualDb, casualIds[1], T0 + 1));
+  const view = (await tx(casualDb, () => viewMatch(casualDb, casualIds[0], paired.body.matchId, T0 + 2))).body;
+  const conceded = await tx(casualDb, () => submitCommand(casualDb, casualIds[0], paired.body.matchId, command(view, 'concede'), T0 + 3));
+  assert.equal(conceded.status, 200);
+  assert.equal((await casualDb.query(`SELECT mode FROM match`)).rows[0].mode, 'casual');
+  assert.equal((await casualDb.query(`SELECT count(*)::int AS n FROM match_result`)).rows[0].n, 1);
+  assert.equal((await casualDb.query(`SELECT count(*)::int AS n FROM rating_change`)).rows[0].n, 0);
+  assert.equal((await casualDb.query(`SELECT count(*)::int AS n FROM rating`)).rows[0].n, 0);
 });
 
 test('views hide the opponent hand, seed and deck order; non-members get 404', async () => {

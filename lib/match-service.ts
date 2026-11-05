@@ -18,7 +18,8 @@ import { project } from './engine.ts';
 import { mutationGate } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
 
-export type Mode = 'casual' | 'private';
+export type Mode = 'casual' | 'ranked' | 'private';
+export type QueueMode = 'casual' | 'ranked';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROOM_CODE = /^[A-Z2-9]{6}$/;
@@ -59,15 +60,21 @@ async function ensureComputer(client: Queryable) {
     [COMPUTER_USER_ID, COMPUTER_HANDLE],
   );
   await client.query(
+    `UPDATE app_user SET handle = $2
+     WHERE id = $1 AND lower(handle) = 'grove'
+       AND NOT EXISTS (SELECT 1 FROM app_user other WHERE lower(other.handle) = lower($2) AND other.id <> $1)`,
+    [COMPUTER_USER_ID, COMPUTER_HANDLE],
+  );
+  await client.query(
     `INSERT INTO profile (user_id, display_name, bio, visibility)
-     VALUES ($1, 'Grove', 'Practice opponent. This seat is unrated.', 'public')
-     ON CONFLICT (user_id) DO NOTHING`,
+     VALUES ($1, 'Robot', 'Practice opponent. This seat is unrated.', 'public')
+     ON CONFLICT (user_id) DO UPDATE SET display_name = EXCLUDED.display_name, bio = EXCLUDED.bio`,
     [COMPUTER_USER_ID],
   );
   await client.query(`INSERT INTO user_role (user_id, role) VALUES ($1, 'player') ON CONFLICT DO NOTHING`, [COMPUTER_USER_ID]);
 }
 
-/** Opens an unrated match against Grove and plays Grove's opening turn when Grove is first. */
+/** Opens an unrated match against Robot and plays Robot's opening turn when Robot is first. */
 export async function startPractice(client: Queryable, userId: string, now: number) {
   const playing = await participationGate(client, userId);
   if (!playing.ok) return fail(403, playing.error);
@@ -157,26 +164,27 @@ export async function cancelRoom(client: Queryable, userId: string, rawCode: unk
 /** Serialised by a transaction-scoped advisory lock so two concurrent entries cannot both wait unmatched or double-match. */
 async function admit(client: Queryable, now: number) {
   const pair = await client.query(
-    `SELECT a.user_id AS first, b.user_id AS second
+    `SELECT a.user_id AS first, b.user_id AS second, a.mode AS mode
      FROM queue_entry a JOIN queue_entry b ON (b.enqueued_at, b.user_id) > (a.enqueued_at, a.user_id)
-     WHERE a.status = 'waiting' AND b.status = 'waiting'
+     WHERE a.status = 'waiting' AND b.status = 'waiting' AND a.mode = b.mode
        AND NOT EXISTS (SELECT 1 FROM user_block k WHERE (k.blocker = a.user_id AND k.blocked = b.user_id) OR (k.blocker = b.user_id AND k.blocked = a.user_id))
      ORDER BY a.enqueued_at, a.user_id, b.enqueued_at, b.user_id LIMIT 1`,
   );
   if (!pair.rows[0]) return;
   const [first, second] = [String(pair.rows[0].first), String(pair.rows[0].second)];
-  const matchId = await createMatch(client, 'casual', first, second, now);
+  const mode: QueueMode = pair.rows[0].mode === 'ranked' ? 'ranked' : 'casual';
+  const matchId = await createMatch(client, mode, first, second, now);
   await client.query(`UPDATE queue_entry SET status = 'matched', match_id = $3 WHERE user_id IN ($1, $2)`, [first, second, matchId]);
 }
 
 async function queueView(client: Queryable, userId: string) {
-  const entry = await client.query(`SELECT status, match_id FROM queue_entry WHERE user_id = $1`, [userId]);
+  const entry = await client.query(`SELECT status, match_id, mode FROM queue_entry WHERE user_id = $1`, [userId]);
   const row = entry.rows[0];
-  if (!row) return { status: 'idle', matchId: null };
-  return { status: String(row.status), matchId: row.match_id ? String(row.match_id) : null };
+  if (!row) return { status: 'idle', matchId: null, mode: null };
+  return { status: String(row.status), matchId: row.match_id ? String(row.match_id) : null, mode: String(row.mode) };
 }
 
-export async function enterQueue(client: Queryable, userId: string, now: number) {
+export async function enterQueue(client: Queryable, userId: string, now: number, mode: QueueMode = 'casual') {
   const playing = await participationGate(client, userId);
   if (!playing.ok) return fail(403, playing.error);
   const gate = await mutationGate(client, userId);
@@ -184,12 +192,21 @@ export async function enterQueue(client: Queryable, userId: string, now: number)
   await client.query(`SELECT pg_advisory_xact_lock($1)`, [QUEUE_LOCK]);
   const active = await activeMatchFor(client, userId);
   if (active) return { status: 200, body: { status: 'matched', matchId: active } };
-  await client.query(
-    `INSERT INTO queue_entry (user_id, status, enqueued_at) VALUES ($1, 'waiting', $2)
-     ON CONFLICT (user_id) DO UPDATE SET status = 'waiting', match_id = NULL, enqueued_at = EXCLUDED.enqueued_at
-     WHERE queue_entry.status = 'matched'`,
-    [userId, new Date(now).toISOString()],
-  );
+  const requested: QueueMode = mode === 'ranked' ? 'ranked' : 'casual';
+  const current = await client.query(`SELECT status, mode FROM queue_entry WHERE user_id = $1`, [userId]);
+  if (current.rows[0]?.status === 'waiting' && current.rows[0].mode !== requested) {
+    await client.query(
+      `UPDATE queue_entry SET mode = $2, enqueued_at = $3 WHERE user_id = $1 AND status = 'waiting'`,
+      [userId, requested, new Date(now).toISOString()],
+    );
+  } else {
+    await client.query(
+      `INSERT INTO queue_entry (user_id, status, mode, enqueued_at) VALUES ($1, 'waiting', $2, $3)
+       ON CONFLICT (user_id) DO UPDATE SET status = 'waiting', mode = EXCLUDED.mode, match_id = NULL, enqueued_at = EXCLUDED.enqueued_at
+       WHERE queue_entry.status = 'matched'`,
+      [userId, requested, new Date(now).toISOString()],
+    );
+  }
   await admit(client, now);
   return { status: 200, body: await queueView(client, userId) };
 }
@@ -198,7 +215,7 @@ export async function queueStatus(client: Queryable, userId: string, now: number
   await client.query(`SELECT pg_advisory_xact_lock($1)`, [QUEUE_LOCK]);
   await admit(client, now);
   const view = await queueView(client, userId);
-  if (view.status === 'matched' && view.matchId && !(await activeMatchFor(client, userId))) return { status: 200, body: { status: 'idle', matchId: null } };
+  if (view.status === 'matched' && view.matchId && !(await activeMatchFor(client, userId))) return { status: 200, body: { status: 'idle', matchId: null, mode: null } };
   return { status: 200, body: view };
 }
 
@@ -292,8 +309,9 @@ async function finish(client: Queryable, match: MatchRow, game: GameState, now: 
     [match.id, result.winner, result.reason, scores[0], scores[1], new Date(now).toISOString()],
   );
   await client.query(`UPDATE match SET status = 'finished', finished_at = $2 WHERE id = $1`, [match.id, new Date(now).toISOString()]);
+  await client.query(`DELETE FROM queue_entry WHERE match_id = $1`, [match.id]);
   await client.query(`UPDATE room SET status = 'finished' WHERE match_id = $1 AND status = 'started'`, [match.id]);
-  if (!inserted.rows[0] || match.mode !== 'casual') return;
+  if (!inserted.rows[0] || match.mode !== 'ranked') return;
   const players = await client.query(`SELECT seat, user_id FROM match_player WHERE match_id = $1 ORDER BY seat`, [match.id]);
   const ids = players.rows.map((row) => String(row.user_id));
   for (const id of ids) {
@@ -356,7 +374,7 @@ export type MatchView = {
 };
 
 async function buildView(client: Queryable, match: MatchRow, seat: Seat, userId: string): Promise<MatchView> {
-  const change = match.mode === 'casual' && match.status === 'finished'
+  const change = match.mode === 'ranked' && match.status === 'finished'
     ? (await client.query(`SELECT before_value, after_value FROM rating_change WHERE match_id = $1 AND user_id = $2`, [match.id, userId])).rows[0]
     : undefined;
   return {

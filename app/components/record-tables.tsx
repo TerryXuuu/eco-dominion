@@ -87,7 +87,7 @@ export function RecentTable({ rows, lang = 'en' }: { rows: RecentRow[]; lang?: L
         { id: 'opponent', label: text.opponent, value: (row) => row.opponent },
         { id: 'outcome', label: text.result, value: (row) => row.outcome },
         { id: 'score', label: text.score, value: (row) => row.score },
-        { id: 'mode', label: lang === 'zh' ? '模式' : 'Mode', value: (row) => row.mode },
+        { id: 'mode', label: lang === 'zh' ? '模式' : 'Mode', value: (row) => row.mode, render: (row) => row.mode === 'ranked' ? text.ranked : row.mode === 'casual' ? text.casual : row.mode === 'practice' ? text.practice : row.mode === 'private' ? text.private : row.mode },
         { id: 'replay', label: text.replay, value: () => text.replay, render: (row) => <Link href={`/matches/${row.id}/replay`}>{text.replay}</Link> },
       ]}
     />

@@ -17,6 +17,7 @@ const communitySchema = read('db/003_community.sql');
 const roomFinishedSchema = read('db/004_room_finished.sql');
 const homeSchema = read('db/005_home.sql');
 const postMediaSchema = read('db/006_post_media.sql');
+const ladderSchema = read('db/007_ladder.sql');
 const audit = read('docs/RULES_AUDIT_AND_DIGITAL_RULINGS.md');
 const approval = read('decisions/OWNER_RULES_APPROVAL.md');
 const cards = JSON.parse(read('data/cards.json'));

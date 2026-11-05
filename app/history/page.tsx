@@ -18,7 +18,7 @@ export default async function HistoryPage() {
     opponent: match.opponentName,
     when: new Date(match.finishedAt).toISOString().slice(0, 16).replace('T', ' '),
     result: match.outcome === 'win' ? text.win : match.outcome === 'loss' ? text.loss : text.draw,
-    detail: `${match.mode === 'casual' ? text.casual : text.private} · ${reason[match.reason] ?? match.reason}`,
+    detail: `${match.opponent === 'robot' || match.opponent === 'grove' ? text.practice : match.mode === 'ranked' ? text.ranked : match.mode === 'casual' ? text.casual : text.private} · ${reason[match.reason] ?? match.reason}`,
     score: match.scores ? `${match.scores[match.seat]}–${match.scores[1 - match.seat]}` : '—',
     ratingLabel: match.rating ? `${match.rating.before} → ${match.rating.after}` : text.unrated,
   }));

@@ -121,7 +121,7 @@ export function AdminConsole({ initial, footer, lang }: { initial: AdminOverview
             { id: 'registered', label: say(lang, 'Registered', '注册时间'), value: (person) => person.createdAt, render: (person) => `${when(person.createdAt)} UTC` },
             { id: 'status', label: say(lang, 'Status', '状态'), value: (person) => accountStatus(lang, person.status), render: (person) => accountStatus(lang, person.status) },
             { id: 'roles', label: say(lang, 'Roles', '角色'), value: (person) => person.roles.map((role) => roleLabel(lang, role)).join(', ') },
-            { id: 'rating', label: say(lang, 'Casual rating', '休闲积分'), value: (person) => person.rating, render: (person) => <>{person.rating} <span className="note">/ {person.games} {say(lang, 'games', '场')}</span></> },
+            { id: 'rating', label: say(lang, 'Ladder rating', '天梯分'), value: (person) => person.rating, render: (person) => <>{person.rating} <span className="note">/ {person.games} {say(lang, 'games', '场')}</span></> },
             {
               id: 'manage',
               label: say(lang, 'Manage', '管理'),
@@ -192,7 +192,7 @@ export function AdminConsole({ initial, footer, lang }: { initial: AdminOverview
                 id: 'mode',
                 label: say(lang, 'Mode', '模式'),
                 value: (match) => `${match.mode} ${match.status}`,
-                render: (match) => <>{modes[match.mode as 'practice' | 'casual' | 'private'] ?? match.mode}<div className="note">{accountStatus(lang, match.status === 'finished' ? 'finished' : match.status)}</div></>,
+                render: (match) => <>{modes[match.mode as 'practice' | 'ranked' | 'casual' | 'private'] ?? match.mode}<div className="note">{accountStatus(lang, match.status === 'finished' ? 'finished' : match.status)}</div></>,
               },
               { id: 'players', label: say(lang, 'Players', '玩家'), value: (match) => match.players.join(' '), render: (match) => `@${match.players[0] ?? '—'} vs @${match.players[1] ?? '—'}` },
               {

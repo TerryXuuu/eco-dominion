@@ -8,7 +8,7 @@ for(let seed=1;seed<=200;seed++){
   let c={id:`sim-${steps++}`,version:s.version,type:'pass'};
   if(choice){c.type='choose';if(choice.kind==='discard')c.uids=s.players[p].hand.slice(0,choice.count).map(x=>x.uid);if(choice.kind==='rest'||choice.kind==='invasion')c.region=choice.options[0];if(choice.kind==='migration')c.skip=true;}
   else {let accepted=false;
-   for(const item of s.players[p].hand){const card=catalog[item.card];if((s.phase==='deploy')!==(card.kind==='species'))continue;
+   for(const item of s.players[p].hand){const card=catalog[item.card];if(s.phase!=='deploy'&&s.phase!=='tactics')continue;
     for(const r of card.regions||REGIONS){for(const target of [undefined,...REGIONS]){const attempt={...c,type:'play',uid:item.uid,region:r,target};if(card.id==='migrate')attempt.species=s.board.find(x=>x.owner===p&&catalog[x.card].regions.includes(r)&&x.region!==r)?.uid;
      try{s=apply(s,p,attempt);accepted=true;break;}catch{} }
      if(accepted)break;

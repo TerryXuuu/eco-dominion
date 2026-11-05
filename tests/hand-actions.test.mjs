@@ -22,11 +22,12 @@ function game(phase, hand, extra = {}) {
   };
 }
 
-test('a lone affordable species plays straight to its only region, and an empty tactics hand can pass', () => {
-  const deploy = game('deploy', [{ uid: 'c1', card: 'deer' }]);
+test('species and spells are both legal in the same play window', () => {
+  const deploy = game('deploy', [{ uid: 'c1', card: 'deer' }, { uid: 'c2', card: 'charge' }]);
   const plan = cardPlay(deploy, 0, deploy.players[0].hand[0]);
   assert.equal(plan.legal, true);
   assert.deepEqual(plan.immediate, { uid: 'c1', region: 'forest' });
+  assert.equal(cardPlay(deploy, 0, deploy.players[0].hand[1]).legal, true);
   assert.equal(anyLegalPlay(deploy, 0), true);
 
   const broke = game('deploy', [{ uid: 'c1', card: 'deer' }], {
@@ -38,6 +39,6 @@ test('a lone affordable species plays straight to its only region, and an empty 
   assert.equal(cardPlay(broke, 0, broke.players[0].hand[0]).legal, false);
   assert.equal(anyLegalPlay(broke, 0), false);
 
-  const tactics = game('tactics', [{ uid: 'c1', card: 'deer' }]);
-  assert.equal(anyLegalPlay(tactics, 0), false);
+  const during = game('tactics', [{ uid: 'c1', card: 'deer' }]);
+  assert.equal(anyLegalPlay(during, 0), true);
 });

@@ -1,15 +1,27 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { useState } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CardInstance, Projection, Region, Seat } from '@/src/engine.mjs';
-import { CARD_BY_ID, REGION_ORDER } from '@/lib/cards';
+import { CARD_BY_ID } from '@/lib/cards';
 import { copy, type Lang } from '@/lib/i18n';
 import { cardTitle, shownEffect } from '@/lib/locale-text';
 import { useArt } from '../../components/art-context';
 import { anyLegalPlay, cardPlay } from '@/lib/hand-actions';
 
 type Play = { uid: string; region?: Region; target?: Region; species?: string };
+
+function arranged(hand: CardInstance[]) {
+  return [...hand].sort((a, b) => {
+    const left = CARD_BY_ID[a.card];
+    const right = CARD_BY_ID[b.card];
+    const group = (left?.kind === 'species' ? 1 : 0) - (right?.kind === 'species' ? 1 : 0);
+    if (group) return group;
+    const cost = (right?.cost ?? 0) - (left?.cost ?? 0);
+    if (cost) return cost;
+    return (right?.power ?? 0) - (left?.power ?? 0);
+  });
+}
 
 export function HandFan({
   game,
@@ -18,8 +30,11 @@ export function HandFan({
   myTurn,
   mode,
   picked = [],
-  onPlay,
+  onBegin,
+  onDragHover,
+  pendingUid = null,
   onToggle,
+  onDiscard,
   onPass,
   dock = false,
   prompt = null,
@@ -33,7 +48,11 @@ export function HandFan({
   mode: 'play' | 'discard';
   picked?: string[];
   onPlay: (play: Play) => void;
+  onBegin?: (uid: string, region?: Region) => void;
+  onDragHover?: (region: Region | 'board' | null) => void;
+  pendingUid?: string | null;
   onToggle?: (uid: string) => void;
+  onDiscard?: (uid: string) => void;
   onPass?: () => void;
   dock?: boolean;
   prompt?: ReactNode;
@@ -42,53 +61,83 @@ export function HandFan({
 }) {
   const text = copy(lang);
   const art = useArt();
-  const hand = game.players[seat].hand ?? [];
+  const hand = arranged(game.players[seat].hand ?? []);
   const [hovered, setHovered] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
-  const [flying, setFlying] = useState<string | null>(null);
-  const [target, setTarget] = useState<Region | ''>('');
-  const [species, setSpecies] = useState('');
-  const focusId = hovered ?? pinned;
+  const [ghost, setGhost] = useState<{ uid: string; x: number; y: number } | null>(null);
+  const suppressClick = useRef(false);
+  const stopDrag = useRef<(() => void) | null>(null);
+  const focusId = hovered ?? pinned ?? pendingUid;
   const focus = hand.find((card) => card.uid === focusId);
   const plan = focus ? cardPlay(game, seat, focus) : null;
   const def = focus ? CARD_BY_ID[focus.card] : null;
   const stuck = myTurn && mode === 'play' && !anyLegalPlay(game, seat);
   const mid = (hand.length - 1) / 2;
 
-  function commit(play: Play) {
-    if (busy || flying) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      onPlay(play);
-      return;
-    }
-    setFlying(play.uid);
-    window.setTimeout(() => {
-      setFlying(null);
-      onPlay(play);
-    }, 320);
-  }
+  useEffect(() => () => stopDrag.current?.(), []);
 
   function activate(card: CardInstance) {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
     if (mode === 'discard') {
       onToggle?.(card.uid);
       setPinned(card.uid);
       return;
     }
-    if (!myTurn) {
-      setPinned((current) => (dock && current === card.uid ? null : card.uid));
-      return;
-    }
-    const next = cardPlay(game, seat, card);
-    if (!next.legal) {
-      setPinned((current) => (dock && current === card.uid ? null : card.uid));
-      return;
-    }
-    if (next.immediate) {
-      commit(next.immediate);
-      return;
-    }
     setPinned((current) => (dock && current === card.uid ? null : card.uid));
+  }
+
+  function begin(card: CardInstance, region?: Region) {
+    if (mode === 'discard') {
+      onDiscard?.(card.uid);
+      return;
+    }
+    if (!myTurn || mode !== 'play' || !onBegin) return;
+    if (pendingUid && pendingUid !== card.uid) return;
+    if (!cardPlay(game, seat, card).legal) return;
+    onBegin(card.uid, region);
+  }
+
+  function pointerDown(event: ReactPointerEvent<HTMLButtonElement>, card: CardInstance) {
+    if (event.button !== 0 || mode !== 'play' || !myTurn || !onBegin) return;
+    if (pendingUid && pendingUid !== card.uid) return;
+    if (!cardPlay(game, seat, card).legal) return;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let moved = false;
+    const hover = (x: number, y: number) => {
+      const hit = document.elementFromPoint(x, y);
+      const region = hit?.closest('[data-region]')?.getAttribute('data-region');
+      const onBoard = Boolean(hit?.closest('[data-drop]'));
+      onDragHover?.(region ? (region as Region) : onBoard ? 'board' : null);
+    };
+    const move = (e: PointerEvent) => {
+      if (!moved && Math.hypot(e.clientX - startX, e.clientY - startY) < 8) return;
+      moved = true;
+      setGhost({ uid: card.uid, x: e.clientX, y: e.clientY });
+      hover(e.clientX, e.clientY);
+    };
+    const up = (e: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      stopDrag.current = null;
+      if (!moved) return;
+      suppressClick.current = true;
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const region = hit?.closest('[data-region]')?.getAttribute('data-region') as Region | undefined;
+      const onBoard = Boolean(hit?.closest('[data-drop]'));
+      setGhost(null);
+      onDragHover?.(null);
+      if (onBoard || region) begin(card, region);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    stopDrag.current = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
   }
 
   const fan = (
@@ -97,25 +146,25 @@ export function HandFan({
         const offset = index - mid;
         const rot = offset * (dock ? 3 : hand.length > 6 ? 6 : 8);
         const raised = focusId === card.uid || picked.includes(card.uid);
-        const playable = mode === 'discard' || (myTurn && cardPlay(game, seat, card).legal);
+        const playable = mode === 'discard' || (myTurn && (!pendingUid || pendingUid === card.uid) && cardPlay(game, seat, card).legal);
         const x = offset * (hand.length > 6 ? (dock ? 54 : 34) : dock ? 68 : 44);
         const y = Math.abs(offset) * (dock ? 5 : 8);
-        const pose = flying === card.uid
-          ? `translateX(calc(-50% + ${x}px)) translateY(-11rem) scale(0.72)`
-          : raised
-            ? `translateX(calc(-50% + ${x}px)) translateY(${y - (dock ? 18 : 96)}px) rotate(0deg) scale(1.04)`
-            : `translateX(calc(-50% + ${x}px)) translateY(${y}px) rotate(${rot}deg)`;
+        const pose = raised
+          ? `translateX(calc(-50% + ${x}px)) translateY(${y - (dock ? 18 : 96)}px) rotate(0deg) scale(1.04)`
+          : `translateX(calc(-50% + ${x}px)) translateY(${y}px) rotate(${rot}deg)`;
         const face = CARD_BY_ID[card.card];
         return (
           <button
             key={card.uid}
             type="button"
-            className={`fan-card${raised ? ' raised' : ''}${playable ? '' : ' dim'}${flying === card.uid ? ' flying' : ''}`}
-            style={{ transform: pose, zIndex: flying === card.uid ? 40 : raised ? 30 : index + 1 }}
+            className={`fan-card${raised ? ' raised' : ''}${playable ? '' : ' dim'}${pendingUid && pendingUid !== card.uid ? ' held-back' : ''}${pendingUid === card.uid ? ' pending-play' : ''}`}
+            style={{ transform: pose, zIndex: raised ? 30 : index + 1 }}
             aria-pressed={picked.includes(card.uid) || pinned === card.uid}
             disabled={busy}
             onMouseEnter={() => setHovered(card.uid)}
             onFocus={() => setHovered(card.uid)}
+            onPointerDown={(event) => pointerDown(event, card)}
+            onDoubleClick={() => begin(card)}
             onClick={() => activate(card)}
           >
             <img src={art.card(face.id)} alt="" />
@@ -132,57 +181,21 @@ export function HandFan({
   const kicker = def && focus
     ? `${text.kind[def.kind as keyof typeof text.kind] ?? def.kind}${def.power !== undefined ? ` · ${text.library.power} ${def.power}` : ''}${def.regions ? ` · ${def.regions.map((region) => text.region[region]).join(' / ')}` : ''}`
     : '';
-  const regionChoices = plan && focus && myTurn && mode === 'play' && plan.legal && !plan.immediate
-    ? (plan.needsSpecies
-      ? (CARD_BY_ID[game.board.find((item) => item.uid === species)?.card ?? '']?.regions ?? []).filter((region) => region !== game.board.find((item) => item.uid === species)?.region)
-      : plan.regions)
-    : [];
-
   const identity = def && focus && plan ? (
     <>
       <h3>{cardTitle(lang, def.id)} {lang === 'en' && <span lang="zh">{def.name}</span>}</h3>
       <p>{shownEffect(lang, def.id, def.effect)}</p>
     </>
-  ) : !dock ? (
-    <p className="note">{hand.length ? (lang === 'zh' ? '悬停查看，点击可打出的牌放到桌上。' : 'Hover a card to read it. Click a playable card to lay it on the table.') : (lang === 'zh' ? '你的手牌是空的。' : 'Your hand is empty.')}</p>
+  ) : !hand.length ? (
+    <p className="note">{lang === 'zh' ? '你的手牌是空的。' : 'Your hand is empty.'}</p>
+  ) : myTurn && mode === 'play' ? (
+    <p className="note">{text.table.playHow}</p>
   ) : null;
 
   const actions = (
     <>
       {kicker && <p className="fan-kicker">{kicker}</p>}
       {plan?.reason && <p className="note">{plan.reason}</p>}
-      {regionChoices.length > 0 && focus && (
-        <div className="row">
-          {regionChoices.map((region) => (
-            <button
-              key={region}
-              type="button"
-              disabled={busy || (plan?.needsTarget && !target) || (plan?.needsSpecies && !species)}
-              onClick={() => commit({ uid: focus.uid, region, ...(plan?.needsTarget && target ? { target } : {}), ...(plan?.needsSpecies ? { species } : {}) })}
-            >
-              {text.region[region]}
-            </button>
-          ))}
-        </div>
-      )}
-      {def && focus && plan && myTurn && mode === 'play' && plan.legal && !plan.immediate && plan.needsTarget && (
-        <label>{def.id === 'bison' ? text.table.enemyRegion : text.table.region}
-          <select value={target} onChange={(event) => setTarget(event.target.value as Region | '')}>
-            <option value="">{text.table.choose}</option>
-            {(def.id === 'bison' ? REGION_ORDER.filter((region) => game.regions[region].controller === (1 - seat)) : REGION_ORDER).map((region) => <option key={region} value={region}>{text.region[region]}</option>)}
-          </select>
-        </label>
-      )}
-      {def && focus && plan && myTurn && mode === 'play' && plan.legal && plan.needsSpecies && (
-        <label>{text.table.species}
-          <select value={species} onChange={(event) => setSpecies(event.target.value)}>
-            <option value="">{text.table.choose}</option>
-            {game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1).map((item) => (
-              <option key={item.uid} value={item.uid}>{cardTitle(lang, item.card)} {text.table.in} {text.region[item.region]}</option>
-            ))}
-          </select>
-        </label>
-      )}
       {stuck && onPass && (
         <div className="row">
           <button type="button" disabled={busy} onClick={onPass}>{text.table.pass}</button>
@@ -192,6 +205,11 @@ export function HandFan({
     </>
   );
 
+  const ghostCard = ghost ? hand.find((card) => card.uid === ghost.uid) : null;
+  const ghostFace = ghostCard ? (
+    <img className="drag-ghost" src={art.card(ghostCard.card)} alt="" style={{ left: ghost!.x, top: ghost!.y }} />
+  ) : null;
+
   if (dock) {
     return (
       <div className="hand-shelf" onMouseLeave={() => setHovered(null)}>
@@ -200,6 +218,7 @@ export function HandFan({
           {identity}
         </aside>
         {fan}
+        {ghostFace}
         <aside className="hand-side">
           {actions}
           {extra}
@@ -211,6 +230,7 @@ export function HandFan({
   return (
     <div className="table-hand" onMouseLeave={() => setHovered(null)}>
       {fan}
+      {ghostFace}
       <div className="fan-detail" aria-live="polite">
         {identity}
         {actions}

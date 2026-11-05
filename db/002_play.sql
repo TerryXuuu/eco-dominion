@@ -14,6 +14,7 @@ CREATE UNIQUE INDEX room_one_open_per_host ON room(host_id) WHERE status = 'open
 CREATE TABLE queue_entry (
  user_id uuid PRIMARY KEY REFERENCES app_user(id),
  status text NOT NULL CHECK (status IN ('waiting','matched')),
+ mode text NOT NULL DEFAULT 'casual' CHECK (mode IN ('casual','ranked')),
  match_id uuid REFERENCES match(id),
  enqueued_at timestamptz NOT NULL DEFAULT now(),
  CHECK ((status = 'matched') = (match_id IS NOT NULL))

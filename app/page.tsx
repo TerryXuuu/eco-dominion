@@ -20,9 +20,7 @@ export default async function HomePage() {
       <LandingStage>
         <SiteHeader email={email} />
         <section className="landing-copy">
-          <p className="eyebrow">{text.eyebrow}</p>
           <h1>{text.title}</h1>
-          <p className="lede">{text.lede}</p>
           <div className="row">
             <Link className="button" href={email ? '/play' : '/register'}>{email ? text.enter : text.create}</Link>
             <Link className="button secondary" href="/rules">{text.rulings}</Link>

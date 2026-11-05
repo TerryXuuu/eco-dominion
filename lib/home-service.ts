@@ -1,3 +1,4 @@
+import { isComputerHandle } from './computer.ts';
 import { CASUAL_SEASON_ID } from './match-rules.ts';
 import type { Queryable } from './profile-service.ts';
 import { career, levelOf, type Achievement, type CareerMatch } from './standing.ts';
@@ -81,9 +82,11 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
       opponentName: String(item.opponent_name ?? item.opponent),
     };
   });
+  const counted = matches.filter((match) => match.mode === 'casual' || match.mode === 'ranked');
   const summary = career(matches, rating, games);
+  const scored = career(counted, rating, games);
   const byOpponent = new Map<string, { displayName: string; wins: number; losses: number; draws: number }>();
-  for (const match of matches) {
+  for (const match of counted) {
     const bucket = byOpponent.get(match.opponent) ?? { displayName: match.opponentName, wins: 0, losses: 0, draws: 0 };
     if (match.outcome === 'win') bucket.wins += 1;
     else if (match.outcome === 'loss') bucket.losses += 1;
@@ -109,9 +112,9 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
     games,
     rank: games > 0 ? Number(row?.ahead ?? 0) + 1 : null,
     level: levelOf(rating, games),
-    record: summary.record,
-    winStreak: summary.winStreak,
-    bestWinStreak: summary.bestWinStreak,
+    record: scored.record,
+    winStreak: scored.winStreak,
+    bestWinStreak: scored.bestWinStreak,
     dayStreak: summary.dayStreak,
     bestDayStreak: summary.bestDayStreak,
     peakRating: summary.peakRating,
@@ -125,7 +128,7 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
       id: match.id,
       opponent: match.opponentName,
       outcome: match.outcome,
-      mode: match.mode,
+      mode: isComputerHandle(match.opponent) ? 'practice' : match.mode,
       finishedAt: match.finishedAt,
       score: match.ownScore === null || match.theirScore === null ? '—' : `${match.ownScore}–${match.theirScore}`,
     })),

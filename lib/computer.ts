@@ -7,7 +7,12 @@ import { applyCommand } from './match-rules.ts';
 
 /** Fixed app_user for the unrated practice opponent. Not a sign-in account. */
 export const COMPUTER_USER_ID = '00000000-0000-4000-8000-0000000000c0';
-export const COMPUTER_HANDLE = 'grove';
+export const COMPUTER_HANDLE = 'robot';
+
+/** Grove was the earlier handle. Both still mark a practice seat. */
+export function isComputerHandle(handle: string) {
+  return handle === 'robot' || handle === 'grove';
+}
 
 const other = (seat: Seat): Seat => (seat === 0 ? 1 : 0);
 

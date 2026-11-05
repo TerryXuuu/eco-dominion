@@ -44,8 +44,7 @@ function spellRegions(game: Projection, seat: Seat, id: string): Region[] {
 export function cardPlay(game: Projection, seat: Seat, card: CardInstance): CardPlan {
   const def = CARD_BY_ID[card.card];
   if (!def || def.kind === 'event') return none('This card cannot be played from hand');
-  const phaseOk = def.kind === 'species' ? game.phase === 'deploy' : game.phase === 'tactics';
-  if (!phaseOk) return none(def.kind === 'species' ? 'Species are played during deployment' : 'Spells are played after deployment');
+  if (game.phase !== 'deploy' && game.phase !== 'tactics') return none('Cards are played on your turn');
   const mine = game.players[seat];
   const cost = def.cost ?? 0;
   const funds = def.kind === 'species' ? mine.energy : mine.energy + mine.reserve;

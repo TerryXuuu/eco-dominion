@@ -1,12 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Seat } from '@/src/engine.mjs';
+import type { Region, Seat } from '@/src/engine.mjs';
 import type { MatchView } from '@/lib/match-service';
 import { CARD_BY_ID, REGION_ORDER } from '@/lib/cards';
+import { cardPlay } from '@/lib/hand-actions';
 import { cardTitle, phaseLabel, say } from '@/lib/locale-text';
-import { anyLegalPlay } from '@/lib/hand-actions';
 import { callApi } from '../../components/call-api';
 import { LanguageSwitch } from '../../components/language-switch';
 import { ThemeSwitch } from '../../components/theme-switch';
@@ -15,6 +14,7 @@ import { copy, type Lang } from '@/lib/i18n';
 import { BoardView } from './board-view';
 import { HandFan } from './hand-fan';
 import { MatchReport } from './match-report';
+import { PlaySheet, type PlayDraft } from './play-sheet';
 
 type Unchanged = { unchanged: true; version: number; deadline: string | null };
 type CommandReply = { duplicate: boolean; view: MatchView; error?: string; version?: number };
@@ -39,9 +39,10 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
   const [view, setView] = useState(initial);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [picks, setPicks] = useState<string[]>([]);
+  const [discardUid, setDiscardUid] = useState<string | null>(null);
   const [species, setSpecies] = useState('');
-  const [summaryOpen, setSummaryOpen] = useState(true);
+  const [draft, setDraft] = useState<PlayDraft | null>(null);
+  const [hotRegion, setHotRegion] = useState<string | null>(null);
   const lastInput = useRef(Date.now());
   const versionRef = useRef(view.version);
   versionRef.current = view.version;
@@ -92,9 +93,19 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
   }, [refresh]);
 
   useEffect(() => {
-    setPicks([]);
+    setDiscardUid(null);
     setSpecies('');
   }, [view.version]);
+
+  useEffect(() => {
+    setDraft((current) => {
+      if (!current) return null;
+      const hand = view.game.players[view.seat].hand ?? [];
+      const card = hand.find((item) => item.uid === current.uid);
+      const playing = view.status !== 'finished' && !view.game.result && !view.game.pending && view.game.active === view.seat && (view.game.phase === 'deploy' || view.game.phase === 'tactics');
+      return playing && card && cardPlay(view.game, view.seat, card).legal ? current : null;
+    });
+  }, [view]);
 
   async function send(type: string, fields: Record<string, unknown> = {}) {
     setBusy(true);
@@ -120,32 +131,30 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
   const pending = game.pending;
   const myChoice = pending && pending.owner === seat ? pending : null;
   const myTurn = !finished && !pending && game.active === seat && (game.phase === 'deploy' || game.phase === 'tactics');
-  const canPlay = myTurn && anyLegalPlay(game, seat);
-  const practice = players.some((player) => player.seat !== seat && player.handle === 'grove');
+  const practice = players.some((player) => player.seat !== seat && (player.handle === 'robot' || player.handle === 'grove'));
   const clockMine = view.clockSeat === seat;
   const myMovers = game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1);
+  const pendingCard = draft ? (game.players[seat].hand ?? []).find((card) => card.uid === draft.uid) : null;
+  const discardCard = discardUid ? (game.players[seat].hand ?? []).find((card) => card.uid === discardUid) : null;
 
-  async function newGame() {
-    if (!practice) {
-      window.location.assign('/play');
+  function beginPlay(uid: string, region?: Region) {
+    const card = (game.players[seat].hand ?? []).find((item) => item.uid === uid);
+    if (!card || (draft && draft.uid !== uid)) return;
+    const plan = cardPlay(game, seat, card);
+    if (!plan.legal) return;
+    const dropped = region && plan.regions.includes(region) ? region : undefined;
+    if (!plan.needsTarget && !plan.needsSpecies && (plan.immediate || dropped)) {
+      send('play', dropped ? { uid, region: dropped } : plan.immediate!);
       return;
     }
-    setBusy(true);
-    setError('');
-    const reply = await callApi<{ matchId?: string; error?: string }>('/api/practice', { method: 'POST' });
-    if (reply.ok && reply.data.matchId && reply.data.matchId !== view.id) {
-      window.location.assign(`/matches/${reply.data.matchId}`);
-      return;
-    }
-    setBusy(false);
-    setError(reply.data.error ?? say(lang, 'Could not start a new game', '无法开始新对局'));
+    setDraft({ ...(draft ?? { uid }), uid, open: true, ...(dropped ? { region: dropped } : {}) });
   }
 
   return (
     <>
       <header className="hud">
-        <Link href="/play">{text.leave}</Link>
-        <strong>{practice ? text.practice : view.mode === 'casual' ? text.casual : text.private}</strong>
+        <a href="/play">{finished ? text.backToLobby : text.leave}</a>
+        <strong>{practice ? text.practice : view.mode === 'ranked' ? text.ranked : view.mode === 'casual' ? text.casual : text.private}</strong>
         <span>
           {finished ? text.over : clockMine ? (myChoice ? text.yourChoice : text.yourTurn) : pending ? (practice ? text.groveChoosing : text.opponentChoosing) : practice ? text.grovePlaying : text.opponentTurn}
           {!finished && <> · {phaseLabel(lang, game.phase)}</>}
@@ -155,25 +164,52 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
         <span className="hud-actions">
           <ThemeSwitch theme={art.theme} />
           <LanguageSwitch lang={lang} />
-          {finished && (
-            <>
-              <button type="button" disabled={busy} onClick={() => void newGame()}>{text.newGame}</button>
-              <button type="button" className="secondary" onClick={() => setSummaryOpen((open) => !open)}>{summaryOpen ? text.closeSummary : text.summary}</button>
-            </>
-          )}
-          {canPlay && <button disabled={busy} onClick={() => send('pass')}>{game.phase === 'deploy' ? text.endDeploy : text.settle}</button>}
+          {myTurn && <button disabled={busy} onClick={() => send('pass')}>{text.endTurn}</button>}
           {!finished && <button className="secondary" disabled={busy} onClick={() => window.confirm(text.surrenderAsk) && send('concede')}>{text.surrender}</button>}
         </span>
       </header>
       {error && <p className="hud-error" role="alert">{error}</p>}
 
+      {finished ? (
+        <div className="table-end">
+          <MatchReport game={game} seat={seat} players={players} timeouts={view.timeouts} rating={view.rating} />
+        </div>
+      ) : (
       <div className="table-stage">
-        <BoardView lang={lang} game={game} seat={seat} players={players} />
-
-        {finished && summaryOpen && (
-          <div className="table-overlay">
-            <MatchReport game={game} seat={seat} players={players} timeouts={view.timeouts} rating={view.rating} matchId={view.id} onClose={() => setSummaryOpen(false)} />
-          </div>
+        <BoardView lang={lang} game={game} seat={seat} players={players} hotRegion={hotRegion} />
+        {draft?.open && (
+          <PlaySheet
+            game={game}
+            seat={seat}
+            draft={draft}
+            busy={busy}
+            lang={lang}
+            onChange={setDraft}
+            onCommit={(play) => send('play', play)}
+            onPeek={() => setDraft({ ...draft, open: false })}
+            onCancel={() => setDraft(null)}
+          />
+        )}
+        {draft && !draft.open && pendingCard && (
+          <button type="button" className="resume-choice" onClick={() => setDraft({ ...draft, open: true })}>
+            {text.resumeChoice} · {cardTitle(lang, pendingCard.card)}
+          </button>
+        )}
+        {myChoice?.kind === 'discard' && discardCard && (
+          <section className="play-pop" aria-label={text.discardAsk}>
+            <div className="play-pop-card">
+              <img src={art.card(discardCard.card)} alt="" />
+              <div>
+                <h3>{text.discardAsk}</h3>
+                <p>{cardTitle(lang, discardCard.card)}</p>
+                <p className="note">{text.discardExactly} {myChoice.count}</p>
+              </div>
+            </div>
+            <div className="row">
+              <button type="button" disabled={busy} onClick={() => send('choose', { uids: [discardUid] })}>{text.discardYes}</button>
+              <button type="button" className="secondary" onClick={() => setDiscardUid(null)}>{text.discardNo}</button>
+            </div>
+          </section>
         )}
 
         {myChoice && myChoice.kind !== 'discard' && (
@@ -218,11 +254,9 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
               myTurn={false}
               mode="discard"
               dock
-              prompt={<p className="dock-prompt">{text.discardExactly} {myChoice.count}</p>}
-              extra={<button type="button" className="dock-act" disabled={busy || picks.length !== myChoice.count} onClick={() => send('choose', { uids: picks })}>{text.discardSelected}</button>}
-              picked={picks}
+              prompt={<p className="dock-prompt">{text.discardHow} {text.discardExactly} {myChoice.count}</p>}
               onPlay={() => undefined}
-              onToggle={(uid) => setPicks((current) => (current.includes(uid) ? current.filter((item) => item !== uid) : [...current, uid]))}
+              onDiscard={setDiscardUid}
             />
           ) : !myChoice && (
             <HandFan
@@ -234,11 +268,15 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
               mode="play"
               dock
               onPlay={(play) => send('play', play)}
+              onBegin={beginPlay}
+              onDragHover={setHotRegion}
+              pendingUid={draft?.uid ?? null}
               onPass={() => send('pass')}
             />
           )}
         </div>
       </div>
+      )}
     </>
   );
 }

@@ -94,7 +94,7 @@ function CardPile({ count, label, face, className }: { count: number; label: str
   );
 }
 
-export function BoardView({ game, seat, players, lang = 'en' }: { game: Projection; seat: Seat; players: Player[]; lang?: Lang }) {
+export function BoardView({ game, seat, players, lang = 'en', hotRegion = null }: { game: Projection; seat: Seat; players: Player[]; lang?: Lang; hotRegion?: string | null }) {
   const text = copy(lang);
   const art = useArt();
   const opponent = (1 - seat) as Seat;
@@ -113,7 +113,7 @@ export function BoardView({ game, seat, players, lang = 'en' }: { game: Projecti
       <CardPile className="hand-pile" count={them.handCount} label={text.table.hand} />
 
       <div className="felt-slot">
-      <div className="felt" aria-label={say(lang, 'Regions', '区域')}>
+      <div className={`felt${hotRegion === 'board' ? ' drop-hot' : ''}`} data-drop="board" aria-label={say(lang, 'Regions', '区域')}>
         <div className="felt-center">
           {event ? (
             <figure className="event-float">
@@ -135,7 +135,7 @@ export function BoardView({ game, seat, players, lang = 'en' }: { game: Projecti
             const info = game.regions[region];
             const holder = info.controller === null ? text.table.neutral : info.controller === seat ? text.table.you : text.table.opponent;
             return (
-              <article key={region} className={`lane ${info.controller === seat ? 'mine' : info.controller === opponent ? 'theirs' : ''}`}>
+              <article key={region} data-region={region} className={`lane ${info.controller === seat ? 'mine' : info.controller === opponent ? 'theirs' : ''}${hotRegion === region ? ' drop-hot' : ''}`}>
                 <div className="lane-row theirs">
                   <span className="side-label">{text.table.opponent}</span>
                   {game.board.filter((item) => item.region === region && item.owner === opponent).map((item) => <TableCard key={item.uid} card={item} />)}

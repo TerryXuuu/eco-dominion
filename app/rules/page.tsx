@@ -15,9 +15,9 @@ export default async function RulesPage() {
       <SiteHeader />
       <main className="shell">
         <section className="hero">
-          <p className="note">{say(lang, `Approved by ${APPROVAL.owners} on ${APPROVAL.date} · ranked play disabled`, `由 ${APPROVAL.owners} 于 ${APPROVAL.date} 批准 · 排位关闭`)}</p>
+          <p className="note">{say(lang, `Approved by ${APPROVAL.owners} on ${APPROVAL.date}`, `由 ${APPROVAL.owners} 于 ${APPROVAL.date} 批准`)}</p>
           <h1>{say(lang, 'Digital rulings', '规则')}</h1>
-          <p className="lede">{say(lang, `Ruleset ${RULESET_ID}. All 26 resolutions are approved for local and casual play. Ranked release waits for balance testing and a separate owner decision.`, `规则集 ${RULESET_ID}。26 条规则已批准用于本地与休闲对局。排位发布仍等待平衡测试，以及另一次所有者决定。`)}</p>
+          <p className="lede">{say(lang, `Ruleset ${RULESET_ID}. Ladder matches use the former casual rating. Casual matches, practice and private rooms are unrated.`, `规则集 ${RULESET_ID}。天梯对局使用原来的休闲积分。休闲、练习和私人房间不计分。`)}</p>
         </section>
         <section className="panel example">
           <h2>{zh ? ZH_ENERGY.heading : 'Corrected energy example · R22'}</h2>

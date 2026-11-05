@@ -63,16 +63,17 @@ function event(s,id){s.event=id;const p=s.active,q=other(p);
  }
  s.eventDiscard.push(id);
 }
-function overflow(s){for(const owner of [s.active,other(s.active)]){const n=s.players[owner].hand.length-7;if(n>0&&!s.choices.some(c=>c.kind==='discard'&&c.owner===owner))s.choices.unshift({kind:'discard',owner,count:n});}}
+function overflow(s){const owner=s.active,n=s.players[owner].hand.length-7;if(n>0&&!s.choices.some(c=>c.kind==='discard'&&c.owner===owner))s.choices.unshift({kind:'discard',owner,count:n});}
+function finishTurn(s){overflow(s);if(s.choices.length){s.afterChoices='settle';return;}s.phase='settle';settlement(s);}
 function start(s){
  s.phase='refresh';s.modifiers=[];s.immunityUsed=[];s.choices=[];for(const r of REGIONS)s.regions[r].broken=[];
  const p=s.active,ps=s.players[p];ps.turns++;ps.max=Math.min(10,ps.turns+2);ps.energy=ps.max;
  if(s.regions.water.lastController===p&&!s.regions.water.denied.includes(p))reserve(s,p,here(s,'water',p).filter(x=>x.card==='beaver').length);
  s.phase='draw';if(!(p===s.first&&ps.turns===1))draw(s,p,2);
- overflow(s);s.afterChoices='event';if(!s.choices.length)advance(s);
+ s.afterChoices='event';advance(s);
 }
-function advance(s){if(s.choices.length)return;if(s.afterChoices==='event'){
- s.phase='event';if(!s.eventDeck.length)s.eventDeck=shuffle(s,s.eventDiscard.splice(0));event(s,s.eventDeck.pop());s.afterChoices='deploy';overflow(s);
+function advance(s){if(s.choices.length)return;if(s.afterChoices==='settle'){s.afterChoices=null;s.phase='settle';settlement(s);return;}if(s.afterChoices==='event'){
+ s.phase='event';if(!s.eventDeck.length)s.eventDeck=shuffle(s,s.eventDiscard.splice(0));event(s,s.eventDeck.pop());s.afterChoices='deploy';
  }if(!s.choices.length){s.phase='deploy';s.afterChoices=null;}}
 export function newGame(seed=1){
  assert(Number.isInteger(seed),'Integer seed required');const s={rules:'digital-1.0-draft',version:0,rng:seed>>>0,first:0,active:0,phase:'refresh',players:[0,1].map(()=>({hand:[],turns:0,max:0,energy:0,reserve:0})),regions:Object.fromEntries(REGIONS.map(r=>[r,{base:0,penalty:[0,0],broken:[],denied:[],lastController:null}])),board:[],modifiers:[],choices:[],immunityUsed:[],discard:[],eventDiscard:[],deck:[],eventDeck:[],event:null,afterChoices:null,result:null,nextUid:0,accepted:[]};
@@ -82,7 +83,7 @@ export function newGame(seed=1){
 }
 function pay(s,p,cost,species){const ps=s.players[p];assert(ps.energy+(species?0:ps.reserve)>=cost,'Insufficient energy');const fromReserve=species?0:Math.min(ps.reserve,cost);ps.reserve-=fromReserve;ps.energy-=cost-fromReserve;}
 function play(s,p,cmd){const ps=s.players[p],i=ps.hand.findIndex(x=>x.uid===cmd.uid);assert(i>=0,'Card not in your hand');const item=ps.hand[i],c=C[item.card],q=other(p),r=cmd.region;
- assert(c.kind==='species'?s.phase==='deploy':s.phase==='tactics','Wrong phase');
+ assert(s.phase==='deploy'||s.phase==='tactics','Wrong phase');
  if(c.kind==='species'){
   region(s,r);assert(c.regions.includes(r),'Illegal region');if(c.id==='guardian')assert(!s.board.some(x=>x.owner===p&&x.card==='guardian'),'Guardian limit');
   if(c.id==='bison'){const options=REGIONS.filter(r=>controller(s,r)===q);if(options.length)assert(options.includes(cmd.target),'Choose enemy controlled target');else assert(cmd.target===undefined,'No enemy controlled target exists');}
@@ -116,7 +117,6 @@ function play(s,p,cmd){const ps=s.players[p],i=ps.hand.findIndex(x=>x.uid===cmd.
    default:throw new Error('Unsupported action');
   }
  }
- overflow(s);
 }
 function settlement(s){
  const p=s.active;const owners=Object.fromEntries(REGIONS.map(r=>[r,controller(s,r)]));
@@ -142,15 +142,16 @@ export function apply(state,seat,cmd){
  assert(cmd.version===state.version,'Stale version');assert(!state.result,'Game finished');const s=structuredClone(state);
  if(s.choices.length){
   const choice=s.choices[0];assert(choice.owner===seat&&cmd.type==='choose','Pending choice must be resolved');
-  if(choice.kind==='discard'){assert(Array.isArray(cmd.uids)&&cmd.uids.length===choice.count&&new Set(cmd.uids).size===choice.count,'Exact discard count required');const ps=s.players[seat];assert(cmd.uids.every(uid=>ps.hand.some(x=>x.uid===uid)),'Invalid discard');for(const uid of cmd.uids)s.discard.push(ps.hand.splice(ps.hand.findIndex(x=>x.uid===uid),1)[0]);}
+  let stay=false;
+  if(choice.kind==='discard'){assert(Array.isArray(cmd.uids)&&cmd.uids.length>=1&&cmd.uids.length<=choice.count&&new Set(cmd.uids).size===cmd.uids.length,'Discard selection required');const ps=s.players[seat];assert(cmd.uids.every(uid=>ps.hand.some(x=>x.uid===uid)),'Invalid discard');for(const uid of cmd.uids)s.discard.push(ps.hand.splice(ps.hand.findIndex(x=>x.uid===uid),1)[0]);const left=ps.hand.length-7;if(left>0){choice.count=left;stay=true;}}
   if(choice.kind==='rest'){assert(choice.options.includes(cmd.region),'Invalid rest target');s.regions[cmd.region].base+=2;}
   if(choice.kind==='migration'&&!cmd.skip)move(s,seat,cmd.species,cmd.region);
   if(choice.kind==='invasion'){region(s,cmd.region);const a=here(s,cmd.region,0).length,b=here(s,cmd.region,1).length;if(a!==b)s.modifiers.push({kind:'aggregate',region:cmd.region,owner:a>b?0:1,amount:4});}
-  s.choices.shift();if(!s.choices.length&&s.afterChoices)advance(s);
+  if(!stay){s.choices.shift();if(!s.choices.length&&s.afterChoices)advance(s);}
  }else{
   assert(seat===s.active,'Not your turn');
   if(cmd.type==='play')play(s,seat,cmd);
-  else if(cmd.type==='pass'){if(s.phase==='deploy')s.phase='tactics';else if(s.phase==='tactics'){s.phase='settle';settlement(s);}else throw new Error('Cannot pass now');}
+  else if(cmd.type==='pass'){if(s.phase==='deploy'||s.phase==='tactics')finishTurn(s);else throw new Error('Cannot pass now');}
   else if(cmd.type==='concede'){s.result={winner:other(seat),reason:'concession'};s.phase='finished';}
   else throw new Error('Unknown command');
  }

@@ -16,6 +16,6 @@ test('Grove spends an opening turn on legal commands and then leaves the clock',
     game = next;
     steps += 1;
   }
-  assert.ok(steps >= 2, 'deployment and tactics each need at least a pass');
+  assert.ok(steps >= 1, 'Grove ends the turn with one pass');
   assert.ok(game.result || clockOwner(game) !== seat);
 });

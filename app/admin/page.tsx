@@ -33,7 +33,7 @@ export default async function AdminPage() {
       <main className="shell wide stack">
         <h1>{say(lang, 'Admin console', '管理后台')}</h1>
         <p className="note">
-          {say(lang, 'Accounts, role grants, casual ratings and match records. Moderators still use the moderation queue for reported posts and comments. Admin, player, and guest are the account roles. A guest can read and cannot play or post. You cannot remove your own admin role or suspend yourself.', '账号、角色授予、休闲积分和对局记录。版主仍用审核队列处理被举报的帖子和评论。管理员、玩家和访客是账号角色。访客可以阅读，不能对局或发帖。你不能移除自己的管理员角色，也不能封禁自己。')}
+          {say(lang, 'Accounts, role grants, ladder ratings and match records. Moderators still use the moderation queue for reported posts and comments. Admin, player, and guest are the account roles. A guest can read and cannot play or post. You cannot remove your own admin role or suspend yourself.', '账号、角色授予、休闲积分和对局记录。版主仍用审核队列处理被举报的帖子和评论。管理员、玩家和访客是账号角色。访客可以阅读，不能对局或发帖。你不能移除自己的管理员角色，也不能封禁自己。')}
         </p>
         <AdminConsole lang={lang} initial={data} footer={await siteCopy()} />
       </main>
