@@ -1,7 +1,7 @@
 /** How to play each card. The rules sentence stays in data/cards.json; this is the table advice. */
 export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
   mouse: {
-    play: 'Open with it. One energy buys a body and a reserve point, which is how you afford the next species.',
+    play: 'Open with it. One energy buys a body and one point of reserve energy, which is how you afford the next species.',
     pair: 'Park it in a forest that already has, or is about to have, a deer. The mouse grows, and the deer likes the mouse back.',
   },
   beetle: {
@@ -10,7 +10,7 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
   },
   deer: {
     play: 'This is a forest anchor, not a lone attacker. Each deer adds stability for as long as it stays, so a second deer is how you hold the region.',
-    pair: 'A mouse in that forest is the payoff. Play the mouse first if you need the reserve to afford the deer.',
+    pair: 'A mouse in that forest is the payoff. Play the mouse first if you need the reserve energy to afford the deer.',
   },
   fox: {
     play: 'Play it when a card in hand is worth more than raw power. It draws on entry and can sit in forest or wild.',
@@ -21,7 +21,7 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
     pair: 'It wants a fox. The fox draws and grows; the lizard keeps paying stability for every copy in wild.',
   },
   beaver: {
-    play: 'Invest in water. The stability on entry is what lets you take the region, and each beaver then refunds a reserve when you refresh, once you control it.',
+    play: 'Invest in water. The stability on entry is what lets you take the region, and each beaver then refunds one reserve energy when you refresh, once you control it.',
     pair: 'Heron and the water finishers want this region to already be yours. Do not wait until turn six to start the dam.',
   },
   heron: {
@@ -41,7 +41,7 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
     pair: 'Do not play it into an empty wild. A panther beside it, or any earlier wild bodies, is what makes the power line worth the cost.',
   },
   falcon: {
-    play: 'A closer for a crowded forest or domain. It banks two reserve on entry, then lifts every friendly species in that region, itself included.',
+    play: 'A closer for a crowded forest or highland. It banks two reserve energy on entry, then lifts every friendly species in that region, itself included.',
     pair: 'Fill the region first. An empty forest makes the aura a self-buff and wastes the five energy.',
   },
   panther: {
@@ -73,7 +73,7 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
     pair: 'Use it to fix a position, not to re-trigger oak, snake, or beaver. Those bonuses do not happen again.',
   },
   charge: {
-    play: 'The cheap way to fill reserve, and it stops at three. Play it the turn before a four-cost or larger card, while your reserve is low.',
+    play: 'The cheap way to fill reserve energy, and it stops at three. Play it the turn before a four-cost or larger card, while your reserve energy is low.',
     pair: 'Skip it when you are already at three. The card would do nothing, and reinforce draws you real options instead.',
   },
   infuse: {
@@ -97,12 +97,12 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
     pair: 'Best into a crowd. One enemy creature is often cheaper to ignore than to tax with a five-cost spell.',
   },
   steal: {
-    play: 'Punish a stocked reserve. If they have none, it discards a random card from their hand instead, so an empty reserve is not a blank.',
-    pair: 'Play it before their charge pays off, or after you have seen them sit on three reserve for a finisher.',
+    play: 'Punish a stocked reserve energy. If they have none, it discards a random card from their hand instead, so an empty reserve energy is not a blank.',
+    pair: 'Play it before their charge pays off, or after you have seen them sit on three reserve energy for a finisher.',
   },
   destroy: {
-    play: 'Cut four stability in any region, and they gain no reserve from that region on their next settlement. Aim it at the region they were about to score from.',
-    pair: 'It is the flexible erode: it does not require them to control the region, and the reserve denial is the part that lasts past this turn.',
+    play: 'Cut four stability in any region, and they gain no reserve energy from that region on their next settlement. Aim it at the region they were about to score from.',
+    pair: 'It is the flexible erode: it does not require them to control the region, and the reserve energy denial is the part that lasts past this turn.',
   },
   heat: {
     play: 'Every species that cost three or less loses three power this turn, yours included. Welcome it when your board is the expensive one.',
@@ -125,8 +125,8 @@ export const CARD_GUIDE: Record<string, { play: string; pair: string }> = {
     pair: 'Use the move to correct a region, not to replay an enter effect. Migrate, the tactic, is the version that also draws.',
   },
   revival: {
-    play: 'Both players gain one reserve, still capped at three. You come out ahead only if you can spend the point and they cannot.',
-    pair: 'A hand with a four-cost card and an empty reserve likes this. A hand that is already at three reserve gains nothing.',
+    play: 'Both players gain one reserve energy, still capped at three. You come out ahead only if you can spend the point and they cannot.',
+    pair: 'A hand with a four-cost card and an empty reserve energy likes this. A hand that is already at three reserve energy gains nothing.',
   },
   drought: {
     play: 'Water loses five stability and nothing else does. If their hold depends on water, this is the event you want to see.',

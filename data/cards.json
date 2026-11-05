@@ -10,7 +10,7 @@
     ],
     "power": 3,
     "copies": 3,
-    "effect": "Enter reserve +1; same-owner deer in region adds +2 power."
+    "effect": "Enter reserve energy +1; same-owner deer in region adds +2 power."
   },
   {
     "id": "beetle",
@@ -74,7 +74,7 @@
     ],
     "power": 6,
     "copies": 3,
-    "effect": "Enter stability +3; controlling water grants reserve +1 on own refresh, once per beaver."
+    "effect": "Enter stability +3; controlling water grants reserve energy +1 on own refresh, once per beaver."
   },
   {
     "id": "heron",
@@ -136,7 +136,7 @@
     ],
     "power": 14,
     "copies": 3,
-    "effect": "Enter reserve +2; continuous +2 power to all friendly species here including self."
+    "effect": "Enter reserve energy +2; continuous +2 power to all friendly species here including self."
   },
   {
     "id": "panther",
@@ -220,7 +220,7 @@
     "kind": "tactic",
     "cost": 1,
     "copies": 3,
-    "effect": "Reserve +2 capped 3."
+    "effect": "Reserve energy +2, capped at 3."
   },
   {
     "id": "infuse",
@@ -268,7 +268,7 @@
     "kind": "interference",
     "cost": 3,
     "copies": 3,
-    "effect": "Enemy reserve -2; if initially zero randomly discard one enemy hand card."
+    "effect": "Enemy reserve energy -2; if initially zero randomly discard one enemy hand card."
   },
   {
     "id": "destroy",
@@ -276,7 +276,7 @@
     "kind": "interference",
     "cost": 4,
     "copies": 3,
-    "effect": "Any region stability -4; enemy gains no reserve from this region on their next settlement."
+    "effect": "Any region stability -4; enemy gains no reserve energy from this region on their next settlement."
   },
   {
     "id": "heat",
@@ -318,7 +318,7 @@
     "name": "生态复兴",
     "kind": "event",
     "copies": 2,
-    "effect": "Both reserve +1 capped 3."
+    "effect": "Both reserve energy +1, capped at 3."
   },
   {
     "id": "drought",

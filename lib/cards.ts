@@ -5,7 +5,7 @@ import type { CardDef, Region } from '../src/engine.mjs';
 export const CATALOG = cards as CardDef[];
 export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(CATALOG.map((card) => [card.id, card]));
 export const REGION_ORDER: Region[] = ['forest', 'water', 'wild', 'domain'];
-export const REGION_LABEL: Record<Region, string> = { forest: 'Forest', water: 'Water', wild: 'Wild', domain: 'Domain' };
+export const REGION_LABEL: Record<Region, string> = { forest: 'Forest', water: 'Water', wild: 'Wild', domain: 'Highland' };
 export const KIND_LABEL: Record<string, string> = { species: 'Species', tactic: 'Tactic', interference: 'Interference', event: 'Event' };
 
 const SPELLS_WITH_REGION = new Set(['fortify', 'bloom', 'infuse', 'erode', 'break', 'veil', 'destroy', 'migrate']);

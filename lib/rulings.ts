@@ -29,7 +29,7 @@ export const RULINGS: { id: string; summary: string }[] = [
   { id: 'R19', summary: 'Terrain destruction blocks the enemy’s next beaver refresh and ordinary settlement income from that region.' },
   { id: 'R20', summary: 'Rest skips a player with no controlled regions. Migration is optional and does not draw or retrigger enter effects. Invasion ties grant nothing.' },
   { id: 'R21', summary: 'Nature balance lifts nonpositive effective stability to zero by adjusting base stability and keeping species offsets.' },
-  { id: 'R22', summary: 'Species spend energy only. Spells may spend reserve, then energy. Energy cannot go below zero.' },
+  { id: 'R22', summary: 'Species spend energy only. Spells may spend reserve energy, then energy. Energy cannot go below zero.' },
   { id: 'R23', summary: 'Deployed species stay on the board. Spells and forced discards go to the shared discard. There is no board slot limit.' },
   { id: 'R24', summary: 'A draw recycles the discard when the deck is empty; otherwise it draws fewer cards. An empty deck is not a loss.' },
   { id: 'R25', summary: 'Production shuffles use a server-side cryptographic seed stored privately with the match. The starter PRNG is only a test harness.' },
@@ -56,7 +56,7 @@ export function spendSpell(energy: number, reserve: number, cost: number): Spend
 
 export const CORRECTED_ENERGY_EXAMPLE = {
   ruling: 'R22',
-  illegal: 'Reserve 0 and energy 4 cannot pay deer (2) and then fortify (3), because the species leaves only 2 energy.',
+  illegal: 'Reserve energy 0 and energy 4 cannot pay deer (2) and then fortify (3), because the species leaves only 2 energy.',
   legal: {
     start: { energy: 4, reserve: 1 },
     afterDeer: spendSpecies(4, 1, 2),

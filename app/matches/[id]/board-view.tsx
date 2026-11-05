@@ -73,7 +73,7 @@ function EnergyOrb({ energy, max, reserve, label, lang }: { energy: number; max:
     <div className="pod energy" aria-label={label}>
       <span className="orb">{energy}</span>
       <small>{say(lang, `of ${max}`, `上限 ${max}`)}</small>
-      <span className="pips" aria-label={`${say(lang, 'Reserve', '储备')} ${reserve}`}>
+      <span className="pips" aria-label={`${say(lang, 'Reserve energy', '储备能量')} ${reserve}`}>
         {[0, 1, 2].map((pip) => <i key={pip} className={pip < reserve ? 'on' : ''} />)}
       </span>
     </div>
