@@ -17,6 +17,7 @@ import { COMPUTER_HANDLE, COMPUTER_USER_ID, chooseComputer } from './computer.ts
 import { project } from './engine.ts';
 import { mutationGate } from './profile-policy.ts';
 import type { Queryable } from './profile-service.ts';
+import { applyLadder, experienceGain } from './standing.ts';
 
 export type Mode = 'casual' | 'ranked' | 'private';
 export type QueueMode = 'casual' | 'ranked';
@@ -311,8 +312,38 @@ async function finish(client: Queryable, match: MatchRow, game: GameState, now: 
   await client.query(`UPDATE match SET status = 'finished', finished_at = $2 WHERE id = $1`, [match.id, new Date(now).toISOString()]);
   await client.query(`DELETE FROM queue_entry WHERE match_id = $1`, [match.id]);
   await client.query(`UPDATE room SET status = 'finished' WHERE match_id = $1 AND status = 'started'`, [match.id]);
-  if (!inserted.rows[0] || match.mode !== 'ranked') return;
+  if (!inserted.rows[0]) return;
   const players = await client.query(`SELECT seat, user_id FROM match_player WHERE match_id = $1 ORDER BY seat`, [match.id]);
+  const xpColumn = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'peak_xp'`,
+  );
+  if (xpColumn.rows.length) {
+    for (const row of players.rows) {
+      const seat = Number(row.seat);
+      const outcome = result.winner === null ? 'draw' : result.winner === seat ? 'win' : 'loss';
+      const gain = experienceGain({ mode: match.mode, outcome });
+      if (gain > 0) await client.query(`UPDATE profile SET peak_xp = peak_xp + $2 WHERE user_id = $1`, [row.user_id, gain]);
+    }
+  }
+  if (match.mode !== 'ranked') return;
+  const ladderColumn = await client.query(
+    `SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`,
+  );
+  if (ladderColumn.rows[0]?.present) {
+    for (const row of players.rows) {
+      const seat = Number(row.seat);
+      const outcome = result.winner === null ? 'draw' : result.winner === seat ? 'win' : 'loss';
+      const stored = await client.query(`SELECT ladder_score, ladder_peak FROM profile WHERE user_id = $1 FOR UPDATE`, [row.user_id]);
+      const beforeScore = Number(stored.rows[0]?.ladder_score ?? 0);
+      const beforePeak = Number(stored.rows[0]?.ladder_peak ?? 0);
+      const next = applyLadder(beforeScore, beforePeak, outcome);
+      await client.query(`UPDATE profile SET ladder_score = $2, ladder_peak = $3 WHERE user_id = $1`, [row.user_id, next.score, next.peak]);
+      await client.query(
+        `INSERT INTO ladder_change (match_id, user_id, before_value, after_value) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+        [match.id, row.user_id, beforeScore, next.score],
+      );
+    }
+  }
   const ids = players.rows.map((row) => String(row.user_id));
   for (const id of ids) {
     await client.query(`INSERT INTO rating (season_id, user_id, rating, games) VALUES ($1, $2, $3, 0) ON CONFLICT DO NOTHING`, [CASUAL_SEASON_ID, id, ELO_START]);
@@ -374,9 +405,14 @@ export type MatchView = {
 };
 
 async function buildView(client: Queryable, match: MatchRow, seat: Seat, userId: string): Promise<MatchView> {
-  const change = match.mode === 'ranked' && match.status === 'finished'
-    ? (await client.query(`SELECT before_value, after_value FROM rating_change WHERE match_id = $1 AND user_id = $2`, [match.id, userId])).rows[0]
-    : undefined;
+  let rating: { before: number; after: number } | null = null;
+  if (match.mode === 'ranked' && match.status === 'finished') {
+    const table = await client.query(`SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`);
+    if (table.rows[0]?.present) {
+      const change = await client.query(`SELECT before_value, after_value FROM ladder_change WHERE match_id = $1 AND user_id = $2`, [match.id, userId]);
+      if (change.rows[0]) rating = { before: Number(change.rows[0].before_value), after: Number(change.rows[0].after_value) };
+    }
+  }
   return {
     id: match.id,
     mode: match.mode,
@@ -387,7 +423,7 @@ async function buildView(client: Queryable, match: MatchRow, seat: Seat, userId:
     clockSeat: clockOwner(match.snapshot.game),
     timeouts: match.snapshot.timeouts,
     players: await participants(client, match.id),
-    rating: change ? { before: Number(change.before_value), after: Number(change.after_value) } : null,
+    rating,
     game: project(match.snapshot.game, seat),
   };
 }
@@ -478,9 +514,17 @@ export async function submitCommand(client: Queryable, userId: string, matchId: 
 // ---------- History, leaderboard, replay ----------
 
 export async function history(client: Queryable, userId: string) {
+  const ladderTable = await client.query(`SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`);
+  const ladderJoin = ladderTable.rows[0]?.present
+    ? 'LEFT JOIN ladder_change lc ON lc.match_id = m.id AND lc.user_id = me.user_id'
+    : '';
+  const ladderColumns = ladderTable.rows[0]?.present
+    ? 'lc.before_value AS ladder_before, lc.after_value AS ladder_after'
+    : 'NULL::int AS ladder_before, NULL::int AS ladder_after';
   const found = await client.query(
     `SELECT m.id, m.mode, m.finished_at, r.winner_seat, r.reason, r.score0, r.score1, me.seat,
-            u.handle AS opponent_handle, op.display_name AS opponent_name, rc.before_value, rc.after_value
+            u.handle AS opponent_handle, op.display_name AS opponent_name, rc.before_value, rc.after_value,
+            ${ladderColumns}
      FROM match_player me
      JOIN match m ON m.id = me.match_id AND m.status = 'finished'
      JOIN match_result r ON r.match_id = m.id
@@ -488,6 +532,7 @@ export async function history(client: Queryable, userId: string) {
      JOIN app_user u ON u.id = them.user_id
      JOIN profile op ON op.user_id = them.user_id
      LEFT JOIN rating_change rc ON rc.match_id = m.id AND rc.user_id = me.user_id
+     ${ladderJoin}
      WHERE me.user_id = $1 ORDER BY m.finished_at DESC LIMIT 50`,
     [userId],
   );
@@ -508,6 +553,7 @@ export async function history(client: Queryable, userId: string) {
           opponent: String(row.opponent_handle),
           opponentName: String(row.opponent_name ?? row.opponent_handle),
           rating: row.before_value === null ? null : { before: Number(row.before_value), after: Number(row.after_value) },
+          ladder: row.ladder_before === null ? null : { before: Number(row.ladder_before), after: Number(row.ladder_after) },
         };
       }),
     },
@@ -515,14 +561,31 @@ export async function history(client: Queryable, userId: string) {
 }
 
 export async function leaderboard(client: Queryable) {
-  const found = await client.query(
-    `SELECT r.rating, r.games, CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN u.handle END AS handle,
-            CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN p.display_name END AS display_name
-     FROM rating r JOIN app_user u ON u.id = r.user_id JOIN profile p ON p.user_id = u.id
-     WHERE r.season_id = $1 AND r.games > 0 AND u.status <> 'deleted'
-     ORDER BY r.rating DESC, r.games DESC, u.id LIMIT 50`,
-    [CASUAL_SEASON_ID],
+  const ladderColumn = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'ladder_score'`,
   );
+  const found = ladderColumn.rows.length
+    ? await client.query(
+      `SELECT p.ladder_score AS rating,
+              (SELECT count(*)::int FROM match_player me
+                JOIN match m ON m.id = me.match_id AND m.status = 'finished' AND m.mode = 'ranked'
+                WHERE me.user_id = u.id) AS games,
+              CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN u.handle END AS handle,
+              CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN p.display_name END AS display_name
+       FROM profile p
+       JOIN app_user u ON u.id = p.user_id
+       WHERE p.ladder_score > 0 AND u.status <> 'deleted'
+       ORDER BY p.ladder_score DESC, p.ladder_peak DESC, u.id
+       LIMIT 50`,
+    )
+    : await client.query(
+      `SELECT r.rating, r.games, CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN u.handle END AS handle,
+              CASE WHEN p.visibility = 'public' AND u.status = 'active' THEN p.display_name END AS display_name
+       FROM rating r JOIN app_user u ON u.id = r.user_id JOIN profile p ON p.user_id = u.id
+       WHERE r.season_id = $1 AND r.games > 0 AND u.status <> 'deleted'
+       ORDER BY r.rating DESC, r.games DESC, u.id LIMIT 50`,
+      [CASUAL_SEASON_ID],
+    );
   return {
     status: 200,
     body: {

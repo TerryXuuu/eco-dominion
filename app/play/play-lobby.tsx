@@ -8,13 +8,17 @@ import { copy, type Lang } from '@/lib/i18n';
 
 type Queue = { status: string; matchId: string | null; mode?: string | null };
 type Room = { code: string; status: string; matchId: string | null };
+type Person = { handle: string; displayName: string };
+type Invite = { code: string; handle: string; displayName: string };
 
 export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | null; lang: Lang }) {
   const text = copy(lang).play;
   const router = useRouter();
   const [queue, setQueue] = useState<Queue>({ status: 'idle', matchId: null });
   const [room, setRoom] = useState<Room | null>(null);
-  const [code, setCode] = useState('');
+  const [friends, setFriends] = useState<Person[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -22,7 +26,23 @@ export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | nul
 
   useEffect(() => {
     callApi<Queue>('/api/queue').then(({ ok, data }) => ok && setQueue(data));
+    callApi<{ friends: Person[] }>('/api/relationships').then(({ ok, data }) => ok && setFriends(data.friends));
   }, []);
+
+  useEffect(() => {
+    if (activeMatchId) return;
+    let stopped = false;
+    const pull = async () => {
+      const { ok, data } = await callApi<{ invites: Invite[] }>('/api/rooms/invites');
+      if (!stopped && ok) setInvites(data.invites);
+    };
+    void pull();
+    const timer = setInterval(pull, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [activeMatchId]);
 
   useEffect(() => {
     if (queue.status !== 'waiting') return;
@@ -111,36 +131,41 @@ export function PlayLobby({ activeMatchId, lang }: { activeMatchId: string | nul
       </section>
       <section className="panel mode-card">
         <h2>{text.room}</h2>
+        <p className="note mode-lead">{text.roomNote}</p>
+        {invites.length > 0 && (
+          <div className="stack">
+            <p className="note">{text.incoming}</p>
+            {invites.map((invite) => (
+              <button key={invite.code} className="secondary" disabled={busy} type="button" onClick={() => run<Room>('/api/rooms/join', 'POST', { code: invite.code }, (data) => data.matchId && go(data.matchId))}>
+                {invite.displayName} · {text.joinFriend}
+              </button>
+            ))}
+          </div>
+        )}
         {room?.status === 'open' ? (
           <>
-            <p>{text.share} <strong className="code" aria-label="Room code">{room.code}</strong></p>
-            <p className="note" role="status">{text.guest}</p>
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const handle = (event.currentTarget.elements.namedItem('invite') as HTMLInputElement).value;
-                run('/api/rooms/invite', 'POST', { code: room.code, handle }, () => undefined);
-              }}
-            >
-              <label>{text.invite}<input name="invite" placeholder="handle" minLength={3} maxLength={24} required /></label>
-              <button className="secondary" disabled={busy} type="submit">{text.send}</button>
-            </form>
-            <button className="secondary" disabled={busy} onClick={() => run<Room>(`/api/rooms/${room.code}`, 'DELETE', undefined, () => setRoom(null))}>{text.cancel}</button>
+            <p className="note" role="status">{text.waitingFriend}</p>
+            <p className="note">{text.pickFriend}</p>
+            {friends.length === 0 && <p className="note">{text.noFriends}</p>}
+            <div className="row">
+              {friends.map((person) => (
+                <button
+                  key={person.handle}
+                  className="secondary"
+                  disabled={busy}
+                  type="button"
+                  onClick={() => run('/api/rooms/invite', 'POST', { code: room.code, handle: person.handle }, () => setNote(`${text.invited} ${person.displayName}`))}
+                >
+                  {person.displayName}
+                </button>
+              ))}
+            </div>
+            {note && <p className="note">{note}</p>}
+            <button className="secondary" disabled={busy} onClick={() => run<Room>(`/api/rooms/${room.code}`, 'DELETE', undefined, () => { setRoom(null); setNote(''); })}>{text.cancel}</button>
           </>
         ) : (
-          <button disabled={busy} onClick={() => run<Room>('/api/rooms', 'POST', undefined, setRoom)}>{text.create}</button>
+          <button className="mode-go" disabled={busy} onClick={() => run<Room>('/api/rooms', 'POST', undefined, setRoom)}>{text.create}</button>
         )}
-        <form
-          className="stack"
-          onSubmit={(event) => {
-            event.preventDefault();
-            run<Room>('/api/rooms/join', 'POST', { code }, (data) => data.matchId && go(data.matchId));
-          }}
-        >
-          <label>{text.joinLabel}<input value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} maxLength={6} placeholder="ABC234" /></label>
-          <button className="secondary" disabled={busy || code.trim().length !== 6} type="submit">{text.join}</button>
-        </form>
       </section>
       {error && <p className="error" role="alert">{error}</p>}
     </div>

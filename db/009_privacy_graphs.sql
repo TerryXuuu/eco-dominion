@@ -1,0 +1,4 @@
+BEGIN;
+ALTER TABLE profile ADD COLUMN IF NOT EXISTS hide_hotspot boolean NOT NULL DEFAULT false;
+ALTER TABLE profile ADD COLUMN IF NOT EXISTS hide_activity boolean NOT NULL DEFAULT false;
+COMMIT;

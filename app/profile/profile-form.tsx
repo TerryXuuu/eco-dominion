@@ -6,7 +6,7 @@ import type { OwnerProfile } from '@/lib/profile-policy';
 import { copy, type Lang } from '@/lib/i18n';
 import { say } from '@/lib/locale-text';
 
-export function ProfileForm({ profile, lang }: { profile: OwnerProfile; lang: Lang }) {
+export function ProfileForm({ profile, lang, title }: { profile: OwnerProfile; lang: Lang; title?: string }) {
   const text = copy(lang).profile;
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -74,12 +74,12 @@ export function ProfileForm({ profile, lang }: { profile: OwnerProfile; lang: La
           {pending ? text.uploading : text.upload}
           <input name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={pending} onChange={(event) => void uploadAvatar(event.target.files?.[0] ?? null)} />
         </label>
-        <p className="note">{text.hint}</p>
+        {!title && <p className="note">{text.hint}</p>}
       </div>
       <div className="profile-fields">
-        <h1>{text.title}</h1>
+        {title ? <h2>{title}</h2> : <h1>{text.title}</h1>}
         <p className="note wide">{profile.email} · {profile.roles.map((role) => copy(lang).role[`${role.slice(0, 1).toUpperCase()}${role.slice(1)}` as 'Admin' | 'Moderator' | 'Guest' | 'Player'] ?? role).join(', ') || copy(lang).role.Player} · {profile.status === 'suspended' ? say(lang, 'suspended', '已封禁') : profile.status === 'active' ? say(lang, 'active', '正常') : profile.status}</p>
-        {(profile.roles.some((role) => role === 'moderator' || role === 'admin') || profile.roles.includes('admin')) && (
+        {!title && (profile.roles.some((role) => role === 'moderator' || role === 'admin') || profile.roles.includes('admin')) && (
           <p className="wide">
             {profile.roles.some((role) => role === 'moderator' || role === 'admin') && <Link href="/moderation">{text.moderation}</Link>}
             {profile.roles.includes('admin') && <> · <Link href="/admin">{text.admin}</Link></>}

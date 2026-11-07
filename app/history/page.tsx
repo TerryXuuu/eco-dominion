@@ -20,7 +20,7 @@ export default async function HistoryPage() {
     result: match.outcome === 'win' ? text.win : match.outcome === 'loss' ? text.loss : text.draw,
     detail: `${match.opponent === 'robot' || match.opponent === 'grove' ? text.practice : match.mode === 'ranked' ? text.ranked : match.mode === 'casual' ? text.casual : text.private} · ${reason[match.reason] ?? match.reason}`,
     score: match.scores ? `${match.scores[match.seat]}–${match.scores[1 - match.seat]}` : '—',
-    ratingLabel: match.rating ? `${match.rating.before} → ${match.rating.after}` : text.unrated,
+    ratingLabel: match.ladder ? `${match.ladder.after - match.ladder.before > 0 ? '+' : ''}${match.ladder.after - match.ladder.before}` : text.unrated,
   }));
   return (
     <>

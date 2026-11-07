@@ -1,26 +1,36 @@
 import { redirect } from 'next/navigation';
-import { currentIdentity } from './api';
-import { withTransaction } from './db';
+import { AuthUnavailableError, currentIdentity } from './api';
+import { withClient } from './db';
 import { accountGate } from './profile-policy';
 import { provisionUser, type AuthIdentity, type Queryable } from './profile-service';
+import { touchPresence } from './presence';
 
 const knownActors = new Map<string, { at: number; userId: string; status: string }>();
-const ACTOR_TTL_MS = 20_000;
+const ACTOR_TTL_MS = 60_000;
 
 /** Server-component guard: a signed-in, provisioned user (suspended users may read) or a redirect to login. */
 export async function pageActor<T>(load: (client: Queryable, userId: string, identity: AuthIdentity) => Promise<T>) {
-  const identity = await currentIdentity();
+  let identity: AuthIdentity | null;
+  try {
+    identity = await currentIdentity();
+  } catch (error) {
+    if (error instanceof AuthUnavailableError) redirect('/login');
+    throw error;
+  }
   if (!identity) redirect('/login');
-  const result = await withTransaction(async (client) => {
-    let known = knownActors.get(identity.subject);
-    if (!known || Date.now() - known.at >= ACTOR_TTL_MS) {
-      const user = await provisionUser(client, identity);
-      known = { at: Date.now(), userId: user.user_id, status: user.status };
-      knownActors.set(identity.subject, known);
-    }
-    if (!accountGate(known.status, false).ok) return null;
-    return { userId: known.userId, suspended: known.status === 'suspended', data: await load(client, known.userId, identity) };
+  const signedIn = identity;
+  const hit = knownActors.get(signedIn.subject);
+  const known = hit && Date.now() - hit.at < ACTOR_TTL_MS ? hit : null;
+  const actor = known ?? await withClient(async (client) => {
+    const user = await provisionUser(client, signedIn);
+    const fresh = { at: Date.now(), userId: user.user_id, status: user.status };
+    knownActors.set(signedIn.subject, fresh);
+    return fresh;
   });
-  if (!result) redirect('/login');
-  return { email: identity.email, ...result };
+  if (!accountGate(actor.status, false).ok) redirect('/login');
+  const [data] = await Promise.all([
+    withClient((client) => load(client, actor.userId, signedIn)),
+    withClient((client) => touchPresence(client, actor.userId)),
+  ]);
+  return { email: signedIn.email, userId: actor.userId, suspended: actor.status === 'suspended', data };
 }

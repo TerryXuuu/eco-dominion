@@ -18,6 +18,10 @@ const roomFinishedSchema = read('db/004_room_finished.sql');
 const homeSchema = read('db/005_home.sql');
 const postMediaSchema = read('db/006_post_media.sql');
 const ladderSchema = read('db/007_ladder.sql');
+const presenceSchema = read('db/008_presence_privacy.sql');
+const privacyGraphsSchema = read('db/009_privacy_graphs.sql');
+const peakXpSchema = read('db/010_peak_xp.sql');
+const ladderScoreSchema = read('db/011_ladder_score.sql');
 const audit = read('docs/RULES_AUDIT_AND_DIGITAL_RULINGS.md');
 const approval = read('decisions/OWNER_RULES_APPROVAL.md');
 const cards = JSON.parse(read('data/cards.json'));
@@ -75,6 +79,26 @@ try {
   );
   const postMediaApplied = postMedia.rows.length === 0;
   if (postMediaApplied) await client.query(postMediaSchema);
+  const presence = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'hide_record'`,
+  );
+  const presenceApplied = presence.rows.length === 0;
+  if (presenceApplied) await client.query(presenceSchema);
+  const privacyGraphs = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'hide_hotspot'`,
+  );
+  const privacyGraphsApplied = privacyGraphs.rows.length === 0;
+  if (privacyGraphsApplied) await client.query(privacyGraphsSchema);
+  const peakXp = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'peak_xp'`,
+  );
+  const peakXpApplied = peakXp.rows.length === 0;
+  if (peakXpApplied) await client.query(peakXpSchema);
+  const ladderScore = await client.query(
+    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'ladder_score'`,
+  );
+  const ladderScoreApplied = ladderScore.rows.length === 0;
+  if (ladderScoreApplied) await client.query(ladderScoreSchema);
   await client.query('BEGIN');
   await client.query(
     `INSERT INTO ruleset (id, content_hash, catalog, digital_rules, approved_at)
@@ -88,7 +112,7 @@ try {
   }
   await client.query('COMMIT');
   const tables = await client.query(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_schema = 'public'`);
-  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', playSchemaApplied: playApplied ? 'db/002_play.sql' : 'already present', communitySchemaApplied: communityApplied ? 'db/003_community.sql' : 'already present', roomFinishedApplied: roomFinishedApplied ? 'db/004_room_finished.sql' : 'already present', homeApplied: homeApplied ? 'db/005_home.sql' : 'already present', postMediaApplied: postMediaApplied ? 'db/006_post_media.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
+  console.log(JSON.stringify({ schemaApplied: applied ? 'db/001_initial.sql' : 'already present', playSchemaApplied: playApplied ? 'db/002_play.sql' : 'already present', communitySchemaApplied: communityApplied ? 'db/003_community.sql' : 'already present', roomFinishedApplied: roomFinishedApplied ? 'db/004_room_finished.sql' : 'already present', homeApplied: homeApplied ? 'db/005_home.sql' : 'already present', postMediaApplied: postMediaApplied ? 'db/006_post_media.sql' : 'already present', presenceApplied: presenceApplied ? 'db/008_presence_privacy.sql' : 'already present', privacyGraphsApplied: privacyGraphsApplied ? 'db/009_privacy_graphs.sql' : 'already present', peakXpApplied: peakXpApplied ? 'db/010_peak_xp.sql' : 'already present', ladderScoreApplied: ladderScoreApplied ? 'db/011_ladder_score.sql' : 'already present', publicTables: tables.rows[0].n, ruleset: row.rows[0] }));
 } catch (error) {
   await client.query('ROLLBACK').catch(() => {});
   throw error;

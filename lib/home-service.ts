@@ -1,7 +1,7 @@
 import { isComputerHandle } from './computer.ts';
 import { CASUAL_SEASON_ID } from './match-rules.ts';
 import type { Queryable } from './profile-service.ts';
-import { career, levelOf, type Achievement, type CareerMatch } from './standing.ts';
+import { career, experienceGain, type Achievement, type CareerMatch } from './standing.ts';
 
 export type HomeDashboard = {
   displayName: string;
@@ -10,7 +10,10 @@ export type HomeDashboard = {
   rating: number;
   games: number;
   rank: number | null;
-  level: number;
+  xp: number;
+  ladderScore: number;
+  ladderPeak: number;
+  lastGain: number;
   record: { wins: number; losses: number; draws: number };
   winStreak: number;
   bestWinStreak: number;
@@ -29,13 +32,12 @@ export type HomeDashboard = {
 
 export async function homeDashboard(client: Queryable, userId: string): Promise<HomeDashboard> {
   const profile = await client.query(
-    `SELECT p.display_name, u.handle, p.avatar_key,
+    `SELECT p.display_name, u.handle, p.avatar_key, p.peak_xp, p.ladder_score, p.ladder_peak,
             COALESCE((SELECT array_agg(role) FROM user_role r WHERE r.user_id = u.id), '{}') AS roles,
             rt.rating, rt.games,
-            (SELECT count(*)::int FROM rating other
-              WHERE other.season_id = $2
-                AND (other.rating > COALESCE(rt.rating, 1000)
-                  OR (other.rating = COALESCE(rt.rating, 1000) AND other.games > COALESCE(rt.games, 0)))) AS ahead,
+            (SELECT count(*)::int FROM profile other
+              JOIN app_user ou ON ou.id = other.user_id
+              WHERE ou.status <> 'deleted' AND other.user_id <> u.id AND other.ladder_score > p.ladder_score) AS ahead,
             COALESCE((
               SELECT json_agg(json_build_object(
                 'id', m.id, 'mode', m.mode, 'finished_at', m.finished_at, 'winner_seat', r.winner_seat,
@@ -84,6 +86,13 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
   });
   const counted = matches.filter((match) => match.mode === 'casual' || match.mode === 'ranked');
   const summary = career(matches, rating, games);
+  const ladderPeak = Number(row?.ladder_peak ?? 0);
+  for (const item of summary.achievements) {
+    if (item.id === 'line') { item.owned = ladderPeak >= 300; item.progress = `${Math.min(ladderPeak, 300)}/300`; }
+    if (item.id === 'prime') { item.owned = ladderPeak >= 600; item.progress = `${Math.min(ladderPeak, 600)}/600`; }
+    if (item.id === 'canopy') { item.owned = ladderPeak >= 800; item.progress = `${Math.min(ladderPeak, 800)}/800`; }
+    if (item.id === 'apex') { item.owned = ladderPeak >= 1000; item.progress = `${Math.min(ladderPeak, 1000)}/1000`; }
+  }
   const scored = career(counted, rating, games);
   const byOpponent = new Map<string, { displayName: string; wins: number; losses: number; draws: number }>();
   for (const match of counted) {
@@ -110,8 +119,11 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
     roles,
     rating,
     games,
-    rank: games > 0 ? Number(row?.ahead ?? 0) + 1 : null,
-    level: levelOf(rating, games),
+    rank: Number(row?.ladder_score ?? 0) > 0 ? Number(row?.ahead ?? 0) + 1 : null,
+    xp: Number(row?.peak_xp ?? 0),
+    ladderScore: Number(row?.ladder_score ?? 0),
+    ladderPeak: Number(row?.ladder_peak ?? 0),
+    lastGain: matches.length ? experienceGain(matches[matches.length - 1]) : 0,
     record: scored.record,
     winStreak: scored.winStreak,
     bestWinStreak: scored.bestWinStreak,
@@ -136,5 +148,32 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
     playedOn: matches.map((match) => match.finishedAt),
     achievements: summary.achievements,
     hasAvatar: Boolean(row?.avatar_key),
+  };
+}
+
+export type FriendHome = { home: HomeDashboard; hideRecord: boolean; hideAchievements: boolean; hideHotspot: boolean; hideActivity: boolean };
+
+/** A friend's home page. Hidden blocks drop out when that friend turned them off. */
+export async function friendDashboard(client: Queryable, viewerId: string, handle: string): Promise<FriendHome | null> {
+  const target = await client.query(
+    `SELECT u.id, p.hide_record, p.hide_achievements, p.hide_hotspot, p.hide_activity
+     FROM app_user u JOIN profile p ON p.user_id = u.id
+     WHERE lower(u.handle) = lower($1) AND u.status = 'active'`,
+    [handle],
+  );
+  const row = target.rows[0];
+  if (!row || String(row.id) === viewerId) return null;
+  const friends = await client.query(
+    `SELECT 1 FROM friend_request
+     WHERE status = 'accepted' AND ((sender = $1 AND recipient = $2) OR (sender = $2 AND recipient = $1))`,
+    [viewerId, row.id],
+  );
+  if (!friends.rows.length) return null;
+  return {
+    home: await homeDashboard(client, String(row.id)),
+    hideRecord: Boolean(row.hide_record),
+    hideAchievements: Boolean(row.hide_achievements),
+    hideHotspot: Boolean(row.hide_hotspot),
+    hideActivity: Boolean(row.hide_activity),
   };
 }

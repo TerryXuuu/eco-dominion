@@ -58,7 +58,7 @@ function TableCard({ card }: { card: CardInstance }) {
   const def = CARD_BY_ID[card.card];
   const title = cardTitle(art.lang, def.id);
   return (
-    <figure className="table-card" title={`${title} · ${art.lang === 'zh' ? '力量' : 'power'} ${def.power ?? '—'} · ${shownEffect(art.lang, def.id, def.effect)}`}>
+    <figure className="table-card" title={`${title} · ${art.lang === 'zh' ? '权重' : 'power'} ${def.power ?? '—'} · ${shownEffect(art.lang, def.id, def.effect)}`}>
       <img src={art.card(def.id)} alt={title} />
       <figcaption>
         <span>{title}</span>

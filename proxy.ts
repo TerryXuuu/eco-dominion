@@ -17,5 +17,5 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile', '/profile/:path*', '/play', '/matches/:path*', '/history', '/home', '/people', '/notifications', '/moderation', '/admin'],
+  matcher: ['/profile', '/profile/:path*', '/settings', '/friends', '/play', '/matches/:path*', '/history', '/home', '/people', '/notifications', '/moderation', '/admin'],
 };

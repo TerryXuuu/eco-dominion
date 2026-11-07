@@ -13,7 +13,7 @@ export type AuthIdentity = {
 
 const PROFILE_SQL = `
   SELECT u.id AS user_id, u.email, u.handle, u.status,
-         p.display_name, p.bio, p.visibility, p.locale,
+         p.display_name, p.bio, p.visibility, p.locale, p.hide_record, p.hide_achievements, p.hide_hotspot, p.hide_activity,
          COALESCE((SELECT array_agg(role ORDER BY role) FROM user_role ur WHERE ur.user_id = u.id), '{}') AS roles
   FROM app_user u
   JOIN profile p ON p.user_id = u.id
@@ -30,6 +30,10 @@ function asRow(row: Record<string, unknown>, roles: string[]): ProfileRow {
     visibility: String(row.visibility) as Visibility,
     locale: String(row.locale),
     roles,
+    hide_record: Boolean(row.hide_record),
+    hide_achievements: Boolean(row.hide_achievements),
+    hide_hotspot: Boolean(row.hide_hotspot),
+    hide_activity: Boolean(row.hide_activity),
   };
 }
 
@@ -173,8 +177,23 @@ export async function updateOwnProfile(client: Queryable, actor: AuthIdentity | 
     await client.query(`UPDATE app_user SET handle = $2 WHERE id = $1`, [row.user_id, parsed.value.handle]);
   }
   await client.query(
-    `UPDATE profile SET display_name = $2, bio = $3, visibility = $4, locale = $5 WHERE user_id = $1`,
-    [row.user_id, parsed.value.displayName, parsed.value.bio, parsed.value.visibility, parsed.value.locale],
+    `UPDATE profile SET display_name = $2, bio = $3, visibility = $4, locale = $5,
+       hide_record = COALESCE($6::boolean, hide_record),
+       hide_achievements = COALESCE($7::boolean, hide_achievements),
+       hide_hotspot = COALESCE($8::boolean, hide_hotspot),
+       hide_activity = COALESCE($9::boolean, hide_activity)
+     WHERE user_id = $1`,
+    [
+      row.user_id,
+      parsed.value.displayName,
+      parsed.value.bio,
+      parsed.value.visibility,
+      parsed.value.locale,
+      parsed.value.hideRecord ?? null,
+      parsed.value.hideAchievements ?? null,
+      parsed.value.hideHotspot ?? null,
+      parsed.value.hideActivity ?? null,
+    ],
   );
   await client.query(
     `INSERT INTO audit_log (id, actor_id, action, subject_type, subject_id, metadata) VALUES ($1, $2, 'profile.update', 'profile', $3, $4::jsonb)`,

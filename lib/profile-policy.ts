@@ -7,6 +7,10 @@ export type ProfilePatch = {
   visibility: Visibility;
   locale: string;
   handle: string;
+  hideRecord?: boolean;
+  hideAchievements?: boolean;
+  hideHotspot?: boolean;
+  hideActivity?: boolean;
 };
 
 const HANDLE = /^[a-z0-9_]{3,24}$/;
@@ -41,7 +45,17 @@ export function parseProfilePatch(input: unknown): { ok: true; value: ProfilePat
   if (!HANDLE.test(handle)) return { ok: false, error: 'Invalid input' };
   if (!LOCALE.test(locale)) return { ok: false, error: 'Invalid input' };
   if (visibility !== 'public' && visibility !== 'friends' && visibility !== 'private') return { ok: false, error: 'Invalid input' };
-  return { ok: true, value: { displayName, bio, visibility, locale, handle } };
+  const hideRecord = optionalFlag(raw.hideRecord);
+  const hideAchievements = optionalFlag(raw.hideAchievements);
+  const hideHotspot = optionalFlag(raw.hideHotspot);
+  const hideActivity = optionalFlag(raw.hideActivity);
+  if (hideRecord === null || hideAchievements === null || hideHotspot === null || hideActivity === null) return { ok: false, error: 'Invalid input' };
+  return { ok: true, value: { displayName, bio, visibility, locale, handle, hideRecord, hideAchievements, hideHotspot, hideActivity } };
+}
+
+function optionalFlag(value: unknown): boolean | undefined | null {
+  if (value === undefined) return undefined;
+  return typeof value === 'boolean' ? value : null;
 }
 
 export function canViewProfile(args: {
@@ -96,6 +110,10 @@ export type ProfileRow = {
   visibility: Visibility;
   locale: string;
   roles: string[];
+  hide_record: boolean;
+  hide_achievements: boolean;
+  hide_hotspot: boolean;
+  hide_activity: boolean;
 };
 
 export function ownerView(row: ProfileRow) {
@@ -108,6 +126,10 @@ export function ownerView(row: ProfileRow) {
     email: row.email,
     status: row.status,
     roles: row.roles,
+    hideRecord: row.hide_record,
+    hideAchievements: row.hide_achievements,
+    hideHotspot: row.hide_hotspot,
+    hideActivity: row.hide_activity,
   };
 }
 

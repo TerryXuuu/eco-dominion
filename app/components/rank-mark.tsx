@@ -1,4 +1,4 @@
-import { rankOf } from '@/lib/standing';
+import { levelProgress, rankOf } from '@/lib/standing';
 
 function Glyph({ tier }: { tier: number }) {
   if (tier === 0) return <ellipse cx="16" cy="18" rx="4.2" ry="6" />;
@@ -11,14 +11,28 @@ function Glyph({ tier }: { tier: number }) {
   return <path d="M16 5l2.2 4.6 5 .7-3.6 3.5.9 5.1L16 16.4 11.5 18.9l.9-5.1L8.8 10.3l5-.7zM8 24h16v2H8z" />;
 }
 
-/** Seal for a player level. Tiers run from Seed at level 1 to Dominion at level 35. */
-export function RankMark({ level, size = 28 }: { level: number; size?: number }) {
-  const rank = rankOf(level);
+/** Seal for a ladder tier. Tiers run from 新芽 at 0 to 巨树 at 1000. */
+export function RankMark({ score, size = 28 }: { score: number; size?: number }) {
+  const rank = rankOf(score);
   return (
-    <svg className={`rank-mark tier-${rank.tier}`} width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={`${rank.name}, level ${level}`}>
+    <svg className={`rank-mark tier-${rank.tier}`} width={size} height={size} viewBox="0 0 32 32" role="img" aria-label={rank.name}>
       <circle cx="16" cy="16" r="15" />
       <Glyph tier={rank.tier} />
     </svg>
+  );
+}
+
+/** Fill toward the next of the thirty levels. At level 30 the bar stays full. */
+export function ExperienceBar({ xp, label, note }: { xp: number; label?: string; note?: string }) {
+  const progress = levelProgress(xp);
+  return (
+    <span className="xp-line" title={note}>
+      {label ? <span className="xp-label">{label}</span> : null}
+      <span className="xp-track" role="progressbar" aria-label={label ?? String(progress.level)} aria-valuenow={progress.into} aria-valuemin={0} aria-valuemax={progress.span}>
+        <span style={{ width: `${progress.percent}%` }} />
+      </span>
+      <span className="xp-num">{progress.into}/{progress.span}</span>
+    </span>
   );
 }
 

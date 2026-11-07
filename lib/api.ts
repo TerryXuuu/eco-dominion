@@ -5,14 +5,15 @@ import { withTransaction } from './db';
 import { privateJson } from './http';
 import { accountGate, sameOrigin } from './profile-policy';
 import { provisionUser, type AuthIdentity, type Queryable } from './profile-service';
+import { touchPresence } from './presence';
 
 type Handler = (client: Queryable, userId: string) => Promise<{ status: number; body: unknown }>;
 
 /** The auth provider could not be reached; the caller is not known to be signed out. */
 export class AuthUnavailableError extends Error {}
 
-const SESSION_ATTEMPTS = 3;
-const SESSION_TTL_MS = 20_000;
+const SESSION_TTL_MS = 5 * 60_000;
+const SESSION_GRACE_MS = 15 * 60_000;
 const remembered = new Map<string, { at: number; identity: AuthIdentity | null }>();
 
 function sessionToken(jar: Awaited<ReturnType<typeof cookies>>) {
@@ -21,19 +22,15 @@ function sessionToken(jar: Awaited<ReturnType<typeof cookies>>) {
 
 async function lookupIdentity(): Promise<AuthIdentity | null> {
   if (!authConfigured) return null;
-  let failure: unknown = null;
-  for (let attempt = 0; attempt < SESSION_ATTEMPTS; attempt += 1) {
-    try {
-      const { data, error } = await auth.getSession();
-      if (data?.user?.email) return toIdentity(data.user);
-      const status = Number((error as { status?: unknown } | null)?.status);
-      if (!error || (status >= 400 && status < 500)) return null;
-      failure = error;
-    } catch (error) {
-      failure = error;
-    }
+  try {
+    const { data, error } = await auth.getSession();
+    if (data?.user?.email) return toIdentity(data.user);
+    const status = Number((error as { status?: unknown } | null)?.status);
+    if (!error || (status >= 400 && status < 500)) return null;
+    console.error('[auth] session lookup failed', error);
+  } catch (error) {
+    console.error('[auth] session lookup failed', error);
   }
-  console.error('[auth] session lookup failed', failure);
   throw new AuthUnavailableError('Authentication service unreachable');
 }
 
@@ -48,13 +45,18 @@ export const currentIdentity = cache(async (): Promise<AuthIdentity | null> => {
   const key = token || 'anonymous';
   const hit = remembered.get(key);
   if (hit && Date.now() - hit.at < SESSION_TTL_MS) return hit.identity;
-  const identity = await lookupIdentity();
-  remembered.set(key, { at: Date.now(), identity });
-  if (remembered.size > 100) {
-    const oldest = remembered.keys().next().value;
-    if (oldest) remembered.delete(oldest);
+  try {
+    const identity = await lookupIdentity();
+    remembered.set(key, { at: Date.now(), identity });
+    if (remembered.size > 100) {
+      const oldest = remembered.keys().next().value;
+      if (oldest) remembered.delete(oldest);
+    }
+    return identity;
+  } catch (error) {
+    if (hit?.identity && Date.now() - hit.at < SESSION_GRACE_MS) return hit.identity;
+    throw error;
   }
-  return identity;
 });
 
 export function forgetSession(token: string) {
@@ -77,6 +79,7 @@ export async function actorRoute(request: Request, handler: Handler, options: { 
       const user = await provisionUser(client, identity);
       const gate = accountGate(user.status, options.mutation);
       if (!gate.ok) return { status: 403, body: { error: gate.error } };
+      await touchPresence(client, user.user_id);
       return handler(client, user.user_id);
     });
     return privateJson(result.body, result.status);

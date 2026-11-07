@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import { PlayerPortrait } from '../../components/player-portrait';
+import { HomeBoard } from '../../components/home-board';
 import { SiteHeader } from '../../components/site-header';
 import { getRelationship } from '@/lib/community-service';
+import { friendDashboard } from '@/lib/home-service';
 import { pageActor } from '@/lib/page-actor';
 import { viewProfile } from '@/lib/profile-service';
 import { PlayerActions } from './player-actions';
@@ -15,11 +17,14 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
   const { handle } = await params;
   const { email, suspended, data } = await pageActor(async (client, viewerId, identity) => {
     const profile = await viewProfile(client, identity, handle);
-    if (profile.status !== 200) return { profile, relationship: null as Awaited<ReturnType<typeof getRelationship>> | null };
+    if (profile.status !== 200) return { profile, relationship: null as Awaited<ReturnType<typeof getRelationship>> | null, board: null };
     const relationship = profile.body.handle.toLowerCase() === handle.toLowerCase() && 'email' in profile.body
       ? null
       : await getRelationship(client, viewerId, handle);
-    return { profile, relationship };
+    const board = relationship && relationship.status === 200 && relationship.body.friend === 'friends'
+      ? await friendDashboard(client, viewerId, handle)
+      : null;
+    return { profile, relationship, board };
   });
   if (data.profile.status !== 200) notFound();
   const lang = await getLang();
@@ -39,6 +44,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ handle:
         </article>
         {relationship && <PlayerActions lang={lang} handle={profile.handle} initial={relationship} suspended={suspended} />}
         {!relationship && <p className="note">{say(lang, 'This is you.', '这是你。')}</p>}
+        {data.board && (
+          <HomeBoard lang={lang} home={data.board.home} hideRecord={data.board.hideRecord} hideAchievements={data.board.hideAchievements} hideHotspot={data.board.hideHotspot} hideActivity={data.board.hideActivity} />
+        )}
       </main>
     </>
   );

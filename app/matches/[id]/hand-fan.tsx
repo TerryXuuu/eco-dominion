@@ -7,7 +7,7 @@ import { CARD_BY_ID } from '@/lib/cards';
 import { copy, type Lang } from '@/lib/i18n';
 import { cardTitle, shownEffect } from '@/lib/locale-text';
 import { useArt } from '../../components/art-context';
-import { anyLegalPlay, cardPlay } from '@/lib/hand-actions';
+import { cardPlay } from '@/lib/hand-actions';
 
 type Play = { uid: string; region?: Region; target?: Region; species?: string };
 
@@ -35,7 +35,6 @@ export function HandFan({
   pendingUid = null,
   onToggle,
   onDiscard,
-  onPass,
   dock = false,
   prompt = null,
   extra = null,
@@ -53,7 +52,6 @@ export function HandFan({
   pendingUid?: string | null;
   onToggle?: (uid: string) => void;
   onDiscard?: (uid: string) => void;
-  onPass?: () => void;
   dock?: boolean;
   prompt?: ReactNode;
   extra?: ReactNode;
@@ -71,7 +69,6 @@ export function HandFan({
   const focus = hand.find((card) => card.uid === focusId);
   const plan = focus ? cardPlay(game, seat, focus) : null;
   const def = focus ? CARD_BY_ID[focus.card] : null;
-  const stuck = myTurn && mode === 'play' && !anyLegalPlay(game, seat);
   const mid = (hand.length - 1) / 2;
 
   useEffect(() => () => stopDrag.current?.(), []);
@@ -196,12 +193,6 @@ export function HandFan({
     <>
       {kicker && <p className="fan-kicker">{kicker}</p>}
       {plan?.reason && <p className="note">{plan.reason}</p>}
-      {stuck && onPass && (
-        <div className="row">
-          <button type="button" disabled={busy} onClick={onPass}>{text.table.pass}</button>
-          <span className="note">{text.table.noPlay}</span>
-        </div>
-      )}
     </>
   );
 

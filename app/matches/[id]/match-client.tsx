@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Region, Seat } from '@/src/engine.mjs';
 import type { MatchView } from '@/lib/match-service';
 import { CARD_BY_ID, REGION_ORDER } from '@/lib/cards';
-import { cardPlay } from '@/lib/hand-actions';
+import { anyLegalPlay, cardPlay } from '@/lib/hand-actions';
 import { cardTitle, phaseLabel, say } from '@/lib/locale-text';
 import { callApi } from '../../components/call-api';
 import { LanguageSwitch } from '../../components/language-switch';
@@ -131,6 +131,7 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
   const pending = game.pending;
   const myChoice = pending && pending.owner === seat ? pending : null;
   const myTurn = !finished && !pending && game.active === seat && (game.phase === 'deploy' || game.phase === 'tactics');
+  const noLegalPlay = myTurn && !anyLegalPlay(game, seat);
   const practice = players.some((player) => player.seat !== seat && (player.handle === 'robot' || player.handle === 'grove'));
   const clockMine = view.clockSeat === seat;
   const myMovers = game.board.filter((item) => item.owner === seat && (CARD_BY_ID[item.card].regions?.length ?? 0) > 1);
@@ -164,7 +165,7 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
         <span className="hud-actions">
           <ThemeSwitch theme={art.theme} />
           <LanguageSwitch lang={lang} />
-          {myTurn && <button disabled={busy} onClick={() => send('pass')}>{text.endTurn}</button>}
+          {myTurn && <button className={noLegalPlay ? 'end-turn-nudge' : undefined} disabled={busy} onClick={() => send('pass')}>{text.endTurn}</button>}
           {!finished && <button className="secondary" disabled={busy} onClick={() => window.confirm(text.surrenderAsk) && send('concede')}>{text.surrender}</button>}
         </span>
       </header>
@@ -271,7 +272,6 @@ export function MatchClient({ initial, lang }: { initial: MatchView; lang: Lang 
               onBegin={beginPlay}
               onDragHover={setHotRegion}
               pendingUid={draft?.uid ?? null}
-              onPass={() => send('pass')}
             />
           )}
         </div>

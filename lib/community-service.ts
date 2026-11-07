@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isOnline } from './presence.ts';
 import {
   COMMENT_MAX,
   actionFits,
@@ -385,10 +386,50 @@ export async function changeRelationship(client: Queryable, viewerId: string, ha
   return { status: 200, body: { handle: String(target.handle), ...visible } };
 }
 
+/** Find players by display name or handle so a friend request can start from a name. */
+export async function searchPlayers(client: Queryable, userId: string, raw: unknown) {
+  const text = typeof raw === 'string' ? raw.trim().slice(0, 40) : '';
+  if (!text) return { status: 200 as const, body: { players: [] } };
+  const pattern = `%${text.replace(/[%_\\]/g, (char) => `\\${char}`)}%`;
+  const rows = await client.query(
+    `SELECT u.handle, p.display_name,
+            CASE
+              WHEN out_req.status = 'accepted' OR in_req.status = 'accepted' THEN 'friends'
+              WHEN in_req.status = 'pending' THEN 'incoming'
+              WHEN out_req.status = 'pending' THEN 'outgoing'
+              ELSE 'none'
+            END AS relation
+     FROM app_user u
+     JOIN profile p ON p.user_id = u.id
+     LEFT JOIN friend_request out_req ON out_req.sender = $1 AND out_req.recipient = u.id
+     LEFT JOIN friend_request in_req ON in_req.sender = u.id AND in_req.recipient = $1
+     WHERE u.status = 'active' AND u.id <> $1 AND p.visibility = 'public'
+       AND NOT ${blocked('$1', 'u.id')}
+       AND (p.display_name ILIKE $2 ESCAPE '\\' OR u.handle ILIKE $2 ESCAPE '\\')
+     ORDER BY CASE WHEN lower(p.display_name) = lower($3) OR lower(u.handle) = lower($3) THEN 0 ELSE 1 END, u.handle
+     LIMIT 8`,
+    [userId, pattern, text],
+  );
+  return {
+    status: 200 as const,
+    body: {
+      players: rows.rows.map((row) => ({
+        handle: String(row.handle),
+        displayName: String(row.display_name),
+        relation: String(row.relation),
+      })),
+    },
+  };
+}
+
 export async function relationships(client: Queryable, userId: string) {
   const list = async (sql: string) =>
-    (await client.query(sql, [userId])).rows.map((row) => ({ handle: String(row.handle), displayName: String(row.display_name) }));
-  const person = `SELECT u.handle, p.display_name FROM app_user u JOIN profile p ON p.user_id = u.id WHERE u.status <> 'deleted' AND`;
+    (await client.query(sql, [userId])).rows.map((row) => ({
+      handle: String(row.handle),
+      displayName: String(row.display_name),
+      online: isOnline(row.last_seen),
+    }));
+  const person = `SELECT u.handle, p.display_name, u.last_seen FROM app_user u JOIN profile p ON p.user_id = u.id WHERE u.status <> 'deleted' AND`;
   return {
     status: 200,
     body: {
@@ -398,6 +439,26 @@ export async function relationships(client: Queryable, userId: string) {
       following: await list(`${person} u.id IN (SELECT followed FROM user_follow WHERE follower = $1) ORDER BY u.handle`),
       followers: await list(`${person} u.id IN (SELECT follower FROM user_follow WHERE followed = $1) ORDER BY u.handle`),
       blocked: await list(`${person} u.id IN (SELECT blocked FROM user_block WHERE blocker = $1) ORDER BY u.handle`),
+    },
+  };
+}
+
+/** Open private rooms this player was invited to. The code stays on the server side of the join button. */
+export async function listRoomInvites(client: Queryable, userId: string) {
+  const rows = await client.query(
+    `SELECT DISTINCT ON (r.code) r.code, u.handle, p.display_name
+     FROM notification n
+     JOIN room r ON r.code = n.payload->>'code' AND r.status = 'open' AND r.host_id <> $1 AND r.guest_id IS NULL
+     JOIN app_user u ON u.id = r.host_id
+     JOIN profile p ON p.user_id = u.id
+     WHERE n.user_id = $1 AND n.kind = 'room_invite'
+     ORDER BY r.code, n.created_at DESC`,
+    [userId],
+  );
+  return {
+    status: 200,
+    body: {
+      invites: rows.rows.map((row) => ({ code: String(row.code), handle: String(row.handle), displayName: String(row.display_name) })),
     },
   };
 }

@@ -5,6 +5,7 @@ import { ArtProvider } from './components/art-context';
 import { SiteFooter } from './components/site-footer';
 import { logoUrl, variantFor } from '@/lib/artwork';
 import { getLang } from '@/lib/lang';
+import { getTextFree } from '@/lib/card-face';
 import { getTheme } from '@/lib/theme';
 
 const latin = Fraunces({
@@ -33,11 +34,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
+  const [lang, theme, textFree] = await Promise.all([getLang(), getTheme(), getTextFree()]);
   return (
     <html lang={lang === 'zh' ? 'zh-CN' : 'en'} className={`${latin.variable} ${chinese.variable}`}>
       <body>
-        <ArtProvider theme={theme} lang={lang}>
+        <ArtProvider theme={theme} lang={lang} textFree={textFree}>
           {children}
           <SiteFooter />
         </ArtProvider>

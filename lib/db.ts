@@ -13,6 +13,16 @@ function getPool() {
   return pool;
 }
 
+/** One pooled connection, without BEGIN/COMMIT. Reads stay one network round trip. */
+export async function withClient<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    return await fn(client);
+  } finally {
+    client.release();
+  }
+}
+
 export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await getPool().connect();
   try {

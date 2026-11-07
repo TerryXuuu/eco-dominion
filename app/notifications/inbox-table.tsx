@@ -40,7 +40,7 @@ export function InboxTable({ rows, labels, lang = 'en' }: { rows: NoticeRow[]; l
           render: (row) => (
             <>
               {row.postId && <Link href={`/community/${row.postId}`}>{say(lang, 'Open post', '打开帖子')}</Link>}
-              {row.code && <span>{say(lang, 'Code', '代码')} {row.code}</span>}
+              {row.kind === 'room_invite' && <Link href="/play">{say(lang, 'Open Play', '去对战')}</Link>}
             </>
           ),
         },

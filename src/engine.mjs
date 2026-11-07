@@ -40,6 +40,7 @@ export function power(s,r,p,temporary=true){
  if(temporary)for(const m of s.modifiers)if(m.kind==='aggregate'&&m.region===r&&m.owner===p)total+=m.amount;
  return Math.max(0,total-s.regions[r].penalty[p]);
 }
+function liftPenalties(s){for(const r of REGIONS)if(stability(s,r)>=0)s.regions[r].penalty=[0,0];}
 export function controller(s,r,temporary=true){const a=power(s,r,0,temporary),b=power(s,r,1,temporary);return a===b?null:a>b?0:1;}
 function region(s,r){assert(REGIONS.includes(r),'Invalid region');return s.regions[r];}
 function mark(s,r,p,amount,interference=false){let a=here(s,r,p);
@@ -119,10 +120,11 @@ function play(s,p,cmd){const ps=s.players[p],i=ps.hand.findIndex(x=>x.uid===cmd.
  }
 }
 function settlement(s){
+ liftPenalties(s);
  const p=s.active;const owners=Object.fromEntries(REGIONS.map(r=>[r,controller(s,r)]));
  for(const r of REGIONS){const z=s.regions[r],owner=owners[r];z.lastController=owner;
   if(owner===p&&!z.denied.includes(p))reserve(s,p,1);
-  if(owner!==null&&stability(s,r)<=0)z.penalty[owner]+=Math.floor(power(s,r,owner)/4);
+  if(owner!==null&&stability(s,r)<0)z.penalty[owner]+=Math.floor(power(s,r,owner)/4);
   z.denied=z.denied.filter(x=>x!==p);
  }
  const post=REGIONS.filter(r=>controller(s,r)===p&&stability(s,r)>=12);
@@ -155,10 +157,10 @@ export function apply(state,seat,cmd){
   else if(cmd.type==='concede'){s.result={winner:other(seat),reason:'concession'};s.phase='finished';}
   else throw new Error('Unknown command');
  }
- s.version++;s.accepted.push({id:cmd.id,seat,version:s.version});return s;
+ liftPenalties(s);s.version++;s.accepted.push({id:cmd.id,seat,version:s.version});return s;
 }
 export function project(s,seat=null){
- assert(seat===null||seat===0||seat===1,'Invalid projection');return {
+ assert(seat===null||seat===0||seat===1,'Invalid projection');liftPenalties(s);return {
   rules:s.rules,version:s.version,active:s.active,first:s.first,phase:s.phase,event:s.event,result:s.result,
   players:s.players.map((p,i)=>({turns:p.turns,max:p.max,energy:p.energy,reserve:p.reserve,handCount:p.hand.length,...(i===seat?{hand:p.hand}: {})})),
   board:s.board,regions:Object.fromEntries(REGIONS.map(r=>[r,{stability:stability(s,r),power:[power(s,r,0),power(s,r,1)],controller:controller(s,r),penalty:s.regions[r].penalty}])),
