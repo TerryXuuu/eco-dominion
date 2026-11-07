@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export default async function HistoryPage() {
   const [{ data }, lang] = await Promise.all([pageActor((client, userId) => history(client, userId)), getLang()]);
   const text = copy(lang).history;
-  const reason: Record<string, string> = { score: text.scoreReason, domination: text.domination, concession: text.surrender, timeout: text.timeouts };
+  const reason: Record<string, string> = { score: text.scoreReason, domination: text.domination, regions: text.regions, concession: text.surrender, timeout: text.timeouts };
   const matches = (data.body as Awaited<ReturnType<typeof history>>['body']).matches.map((match) => ({
     ...match,
     opponent: match.opponentName,

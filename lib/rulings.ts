@@ -8,7 +8,7 @@ export const APPROVAL = {
 } as const;
 
 export const RULINGS: { id: string; summary: string }[] = [
-  { id: 'R01', summary: 'Eight personal turns each, alternating, at most 16 settlements. Domination is checked at settlement, including the last turn; otherwise score after both counters reach 8.' },
+  { id: 'R01', summary: 'Eight personal turns each. Every region with a species gains 1 stability when the second player ends a turn. Domination is checked at every settlement. When both counters reach 8, domination wins if either player has it; otherwise more regions wins, and equal regions compare total weight.' },
   { id: 'R02', summary: 'Personal turn 1 refreshes to 3 energy. Each later personal turn adds 1, capped at 10.' },
   { id: 'R03', summary: 'The first player draws 0 on their first turn. The second player draws 2. Later turns draw 2. Opening hands stay at 5.' },
   { id: 'R04', summary: 'One event is revealed per personal turn, at most 16. The active player chooses before the opponent.' },
@@ -17,7 +17,7 @@ export const RULINGS: { id: string; summary: string }[] = [
   { id: 'R07', summary: 'Printed species power stays immutable. A region penalty stays put when species migrate, and clears when that region’s stability returns to zero or above.' },
   { id: 'R08', summary: 'Settlement income uses pre-penalty control. A penalty is applied once while stability is below zero, then control is recomputed for victory.' },
   { id: 'R09', summary: 'Domination is checked only at settlement, not during deployment or the event.' },
-  { id: 'R10', summary: 'Final scoring drops temporary modifiers, keeps continuous passives and permanent penalties, and ignores tied regions.' },
+  { id: 'R10', summary: 'The final comparison drops temporary modifiers and keeps continuous passives and penalties. A tied region is held by nobody. Total weight adds every region.' },
   { id: 'R11', summary: 'Deer contributes +2 stability while present. Each lizard contributes +3 while a same-owner fox is present. Neither stacks on refresh.' },
   { id: 'R12', summary: 'Pair bonuses are Boolean per recipient. Aura sources stack additively, including themselves when the card says all friendly species.' },
   { id: 'R13', summary: 'Nonpositive stability disables power auras, bison scaling, and synergies. Deer stability and beaver refresh income remain.' },

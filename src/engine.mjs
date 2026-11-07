@@ -120,6 +120,7 @@ function play(s,p,cmd){const ps=s.players[p],i=ps.hand.findIndex(x=>x.uid===cmd.
  }
 }
 function settlement(s){
+ if(s.active!==s.first)for(const r of REGIONS)if(s.board.some(x=>x.region===r))s.regions[r].base+=1;
  liftPenalties(s);
  const p=s.active;const owners=Object.fromEntries(REGIONS.map(r=>[r,controller(s,r)]));
  for(const r of REGIONS){const z=s.regions[r],owner=owners[r];z.lastController=owner;
@@ -132,8 +133,12 @@ function settlement(s){
  s.players[p].energy=0;
  if(s.players.every(x=>x.turns>=8)){
   s.modifiers=[];s.immunityUsed=[];for(const r of REGIONS)s.regions[r].broken=[];
-  const scores=[0,0];for(const r of REGIONS){const owner=controller(s,r,false);if(owner!==null)scores[owner]+=power(s,r,owner,false);}
-  s.result={winner:scores[0]===scores[1]?null:scores[0]>scores[1]?0:1,reason:'score',scores};s.phase='finished';return;
+  const counts=[0,0],scores=[0,0];
+  for(const r of REGIONS){const owner=controller(s,r,false);if(owner!==null)counts[owner]++;scores[0]+=power(s,r,0,false);scores[1]+=power(s,r,1,false);}
+  const dominated=[0,1].map(p=>REGIONS.filter(r=>controller(s,r,false)===p&&stability(s,r)>=12).length);
+  if(dominated[0]>=3||dominated[1]>=3){s.result={winner:dominated[0]>=3?0:1,reason:'domination',scores};s.phase='finished';return;}
+  const winner=counts[0]===counts[1]?(scores[0]===scores[1]?null:scores[0]>scores[1]?0:1):counts[0]>counts[1]?0:1;
+  s.result={winner,reason:counts[0]===counts[1]?'score':'regions',scores};s.phase='finished';return;
  }
  s.active=other(p);start(s);
 }

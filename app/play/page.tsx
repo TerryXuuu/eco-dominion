@@ -20,7 +20,6 @@ export default async function PlayPage() {
       <main className="shell stack">
         <section className="hero compact">
           <h1>{text.title}</h1>
-          <p className="lede">{text.lede}</p>
         </section>
         <PlayLobby lang={lang} activeMatchId={activeMatchId} />
       </main>

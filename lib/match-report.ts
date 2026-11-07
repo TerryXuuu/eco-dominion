@@ -29,9 +29,14 @@ export type MatchReport = {
 
 const ENDING: Record<string, { win: string; loss: string; draw: string }> = {
   score: {
-    win: 'You won on the final score.',
-    loss: 'You lost on the final score.',
-    draw: 'The final score was level.',
+    win: 'You held the same number of regions and more total weight.',
+    loss: 'You held the same number of regions and less total weight.',
+    draw: 'Regions held and total weight were level.',
+  },
+  regions: {
+    win: 'You won by holding more regions.',
+    loss: 'You held fewer regions.',
+    draw: 'You held the same number of regions.',
   },
   domination: {
     win: 'You won by domination.',

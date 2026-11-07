@@ -187,7 +187,7 @@ test('a complete persisted casual match records one result, rates once, and repl
   }
   const final = (await tx(db, () => viewMatch(db, ada, body.matchId, now))).body;
   assert.equal(final.status, 'finished');
-  assert.ok(['score', 'domination'].includes(final.game.result.reason));
+  assert.ok(['score', 'regions', 'domination'].includes(final.game.result.reason));
   assert.ok(final.game.players.every((player) => player.turns === 8) || final.game.result.reason === 'domination');
   assert.equal((await db.query(`SELECT count(*)::int AS n FROM match_result WHERE match_id = $1`, [body.matchId])).rows[0].n, 1);
   const changes = await db.query(`SELECT user_id, before_value, after_value FROM rating_change WHERE match_id = $1`, [body.matchId]);

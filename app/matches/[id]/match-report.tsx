@@ -23,7 +23,8 @@ export function MatchReport({
   if (!report) return null;
   const headline = report.outcome === 'win' ? say(lang, 'Congratulations', '恭喜') : report.outcome === 'loss' ? say(lang, 'Defeat', '落败') : say(lang, 'Draw', '平局');
   const message = {
-    score: { win: say(lang, 'You won on the final score.', '你以终局得分获胜。'), loss: say(lang, 'You lost on the final score.', '你以终局得分落败。'), draw: say(lang, 'The final score was level.', '终局得分持平。') },
+    score: { win: say(lang, 'You held the same number of regions and more total weight.', '占领区域相同，你的总权重更高。'), loss: say(lang, 'You held the same number of regions and less total weight.', '占领区域相同，你的总权重更低。'), draw: say(lang, 'Regions held and total weight were level.', '占领区域和总权重都相同。') },
+    regions: { win: say(lang, 'You won by holding more regions.', '你占领的区域更多。'), loss: say(lang, 'You held fewer regions.', '你占领的区域更少。'), draw: say(lang, 'You held the same number of regions.', '占领的区域一样多。') },
     domination: { win: say(lang, 'You won by domination.', '你以支配获胜。'), loss: say(lang, 'Your opponent won by domination.', '对手以支配获胜。'), draw: say(lang, 'The match ended level.', '对局以平局结束。') },
     concession: { win: say(lang, 'Your opponent surrendered.', '对手认输。'), loss: say(lang, 'You surrendered this match.', '你认输了。'), draw: say(lang, 'The match ended level.', '对局以平局结束。') },
     timeout: { win: say(lang, 'You won because your opponent timed out.', '对手超时，你获胜。'), loss: say(lang, 'You lost on timeouts.', '你因超时落败。'), draw: say(lang, 'The match ended level.', '对局以平局结束。') },

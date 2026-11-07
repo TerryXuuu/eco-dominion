@@ -45,8 +45,9 @@ export function resultText(game: Projection, seat: Seat, players: Player[], lang
       ? say(lang, 'You won', '你赢了')
       : say(lang, `${nameOf(players, winner)} won`, `${nameOf(players, winner)} 获胜`);
   const why = {
-    score: say(lang, 'on final score', '按终局得分'),
+    score: say(lang, 'on total weight', '按总权重'),
     domination: say(lang, 'by domination', '以支配'),
+    regions: say(lang, 'by regions held', '按占领区域'),
     concession: say(lang, 'by surrender', '因认输'),
     timeout: say(lang, 'on timeouts', '因超时'),
   }[reason] ?? reason;
