@@ -3,6 +3,7 @@ import { REASON_MAX, cleanText } from './community-policy.ts';
 import { moderate } from './community-service.ts';
 import { CASUAL_SEASON_ID, ELO_START } from './match-rules.ts';
 import { mutationGate } from './profile-policy.ts';
+import { forgetSiteCopy } from './site-copy.ts';
 import type { Queryable } from './profile-service.ts';
 
 const fail = <S extends 400 | 403 | 404 | 409>(status: S, error: string) => ({ status, body: { error } as const });
@@ -194,6 +195,7 @@ export async function adminAct(client: Queryable, adminId: string, input: unknow
       [copyright, contacts],
     );
     await writeAudit(client, adminId, 'site.footer', adminId, { copyright, contacts, reason });
+    forgetSiteCopy();
     const overview = await adminOverview(client, adminId);
     if (overview.status !== 200) return overview;
     return { status: 200 as const, body: { message: 'Footer updated', ...overview.body } };

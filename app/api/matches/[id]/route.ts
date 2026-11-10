@@ -8,5 +8,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const known = new URL(request.url).searchParams.get('v');
   const knownVersion = known !== null && /^\d{1,9}$/.test(known) ? Number(known) : undefined;
-  return actorRoute(request, (client, userId) => viewMatch(client, userId, id, Date.now(), knownVersion), { mutation: false });
+  return actorRoute(request, (client, userId) => viewMatch(client, userId, id, Date.now(), knownVersion), { mutation: false, transaction: true });
 }

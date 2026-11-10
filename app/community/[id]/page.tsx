@@ -1,9 +1,8 @@
 import { notFound } from 'next/navigation';
-import { SiteHeader } from '../../components/site-header';
 import { PUBLIC_READER, participationGate } from '@/lib/access';
 import { currentIdentity } from '@/lib/api';
 import { getPost } from '@/lib/community-service';
-import { withTransaction } from '@/lib/db';
+import { withClient } from '@/lib/db';
 import { pageActor } from '@/lib/page-actor';
 import { Thread } from './thread-client';
 import { getLang } from '@/lib/lang';
@@ -17,11 +16,10 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const heading = lang === 'zh' ? '帖子' : 'Post';
   const identity = await currentIdentity();
   if (!identity) {
-    const data = await withTransaction((client) => getPost(client, PUBLIC_READER, id));
+    const data = await withClient((client) => getPost(client, PUBLIC_READER, id));
     if (data.status !== 200) notFound();
     return (
       <>
-        <SiteHeader />
         <main className="shell stack">
           <h1>{heading}</h1>
           <Thread lang={lang} post={data.body.post} comments={data.body.comments} suspended={false} readonly />
@@ -38,7 +36,6 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const thread = data.result.body;
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <h1>{heading}</h1>
         <Thread lang={lang} post={thread.post} comments={thread.comments} suspended={suspended} readonly={data.readonly} />

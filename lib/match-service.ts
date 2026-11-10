@@ -29,6 +29,42 @@ const QUEUE_LOCK = 72_000_201;
 const fail = (status: number, error: string, extra: Record<string, unknown> = {}) => ({ status, body: { error, ...extra } });
 const ms = (value: unknown) => (value === null || value === undefined ? null : new Date(value as string).getTime());
 
+type SchemaFlags = { ladderScore?: boolean; ladderChange?: boolean; peakXp?: boolean };
+const schemaFlags = new WeakMap<object, SchemaFlags>();
+
+function schemaOf(client: Queryable) {
+  const key = client as object;
+  const found = schemaFlags.get(key);
+  if (found) return found;
+  const fresh: SchemaFlags = {};
+  schemaFlags.set(key, fresh);
+  return fresh;
+}
+
+async function hasLadderScore(client: Queryable) {
+  const flags = schemaOf(client);
+  if (flags.ladderScore === true) return true;
+  const found = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'ladder_score'`);
+  flags.ladderScore = found.rows.length > 0;
+  return flags.ladderScore;
+}
+
+async function hasLadderChange(client: Queryable) {
+  const flags = schemaOf(client);
+  if (flags.ladderChange === true) return true;
+  const found = await client.query(`SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`);
+  flags.ladderChange = Boolean(found.rows[0]?.present);
+  return flags.ladderChange;
+}
+
+async function hasPeakXp(client: Queryable) {
+  const flags = schemaOf(client);
+  if (flags.peakXp === true) return true;
+  const found = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'peak_xp'`);
+  flags.peakXp = found.rows.length > 0;
+  return flags.peakXp;
+}
+
 export const isUuid = (value: unknown): value is string => typeof value === 'string' && UUID.test(value);
 
 export async function activeMatchFor(client: Queryable, userId: string) {
@@ -53,7 +89,10 @@ async function createMatch(client: Queryable, mode: Mode, seat0: string, seat1: 
   return id;
 }
 
+const computerReady = new WeakSet<object>();
+
 async function ensureComputer(client: Queryable) {
+  if (computerReady.has(client as object)) return;
   await client.query(
     `INSERT INTO app_user (id, auth_subject, email, handle, email_verified_at, status)
      VALUES ($1, 'computer:grove', 'grove@ecodominion.invalid', $2, now(), 'active')
@@ -73,6 +112,7 @@ async function ensureComputer(client: Queryable) {
     [COMPUTER_USER_ID],
   );
   await client.query(`INSERT INTO user_role (user_id, role) VALUES ($1, 'player') ON CONFLICT DO NOTHING`, [COMPUTER_USER_ID]);
+  computerReady.add(client as object);
 }
 
 /** Opens an unrated match against Robot and plays Robot's opening turn when Robot is first. */
@@ -314,10 +354,7 @@ async function finish(client: Queryable, match: MatchRow, game: GameState, now: 
   await client.query(`UPDATE room SET status = 'finished' WHERE match_id = $1 AND status = 'started'`, [match.id]);
   if (!inserted.rows[0]) return;
   const players = await client.query(`SELECT seat, user_id FROM match_player WHERE match_id = $1 ORDER BY seat`, [match.id]);
-  const xpColumn = await client.query(
-    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'peak_xp'`,
-  );
-  if (xpColumn.rows.length) {
+  if (await hasPeakXp(client)) {
     for (const row of players.rows) {
       const seat = Number(row.seat);
       const outcome = result.winner === null ? 'draw' : result.winner === seat ? 'win' : 'loss';
@@ -326,10 +363,7 @@ async function finish(client: Queryable, match: MatchRow, game: GameState, now: 
     }
   }
   if (match.mode !== 'ranked') return;
-  const ladderColumn = await client.query(
-    `SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`,
-  );
-  if (ladderColumn.rows[0]?.present) {
+  if (await hasLadderChange(client)) {
     for (const row of players.rows) {
       const seat = Number(row.seat);
       const outcome = result.winner === null ? 'draw' : result.winner === seat ? 'win' : 'loss';
@@ -406,12 +440,9 @@ export type MatchView = {
 
 async function buildView(client: Queryable, match: MatchRow, seat: Seat, userId: string): Promise<MatchView> {
   let rating: { before: number; after: number } | null = null;
-  if (match.mode === 'ranked' && match.status === 'finished') {
-    const table = await client.query(`SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`);
-    if (table.rows[0]?.present) {
-      const change = await client.query(`SELECT before_value, after_value FROM ladder_change WHERE match_id = $1 AND user_id = $2`, [match.id, userId]);
-      if (change.rows[0]) rating = { before: Number(change.rows[0].before_value), after: Number(change.rows[0].after_value) };
-    }
+  if (match.mode === 'ranked' && match.status === 'finished' && await hasLadderChange(client)) {
+    const change = await client.query(`SELECT before_value, after_value FROM ladder_change WHERE match_id = $1 AND user_id = $2`, [match.id, userId]);
+    if (change.rows[0]) rating = { before: Number(change.rows[0].before_value), after: Number(change.rows[0].after_value) };
   }
   return {
     id: match.id,
@@ -430,6 +461,26 @@ async function buildView(client: Queryable, match: MatchRow, seat: Seat, userId:
 
 export async function viewMatch(client: Queryable, userId: string, matchId: unknown, now: number, knownVersion?: number) {
   if (!isUuid(matchId)) return fail(404, 'Match not found');
+  if (knownVersion !== undefined) {
+    const peek = await client.query(
+      `SELECT m.version, m.status, m.deadline, me.seat,
+              (m.private_snapshot->'game'->>'active')::int AS active,
+              EXISTS (SELECT 1 FROM match_player bot WHERE bot.match_id = m.id AND bot.user_id = $3) AS has_bot
+       FROM match m
+       JOIN match_player me ON me.match_id = m.id AND me.user_id = $2
+       WHERE m.id = $1`,
+      [matchId, userId, COMPUTER_USER_ID],
+    );
+    const row = peek.rows[0];
+    if (row && Number(row.version) === knownVersion) {
+      const deadline = ms(row.deadline);
+      const due = deadline !== null && deadline <= now;
+      const botTurn = Boolean(row.has_bot) && String(row.status) === 'active' && Number(row.active) !== Number(row.seat);
+      if (!due && !botTurn) {
+        return { status: 200, body: { unchanged: true, version: knownVersion, deadline: deadline === null ? null : new Date(deadline).toISOString() } };
+      }
+    }
+  }
   const seat = await seatOf(client, matchId, userId);
   if (seat === null) return fail(404, 'Match not found');
   let match = await loadMatch(client, matchId, false);
@@ -514,11 +565,11 @@ export async function submitCommand(client: Queryable, userId: string, matchId: 
 // ---------- History, leaderboard, replay ----------
 
 export async function history(client: Queryable, userId: string) {
-  const ladderTable = await client.query(`SELECT to_regclass('public.ladder_change') IS NOT NULL AS present`);
-  const ladderJoin = ladderTable.rows[0]?.present
+  const ladderTable = await hasLadderChange(client);
+  const ladderJoin = ladderTable
     ? 'LEFT JOIN ladder_change lc ON lc.match_id = m.id AND lc.user_id = me.user_id'
     : '';
-  const ladderColumns = ladderTable.rows[0]?.present
+  const ladderColumns = ladderTable
     ? 'lc.before_value AS ladder_before, lc.after_value AS ladder_after'
     : 'NULL::int AS ladder_before, NULL::int AS ladder_after';
   const found = await client.query(
@@ -561,10 +612,7 @@ export async function history(client: Queryable, userId: string) {
 }
 
 export async function leaderboard(client: Queryable) {
-  const ladderColumn = await client.query(
-    `SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profile' AND column_name = 'ladder_score'`,
-  );
-  const found = ladderColumn.rows.length
+  const found = (await hasLadderScore(client))
     ? await client.query(
       `SELECT p.ladder_score AS rating,
               (SELECT count(*)::int FROM match_player me

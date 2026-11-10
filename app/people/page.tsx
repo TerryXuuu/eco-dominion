@@ -1,4 +1,3 @@
-import { SiteHeader } from '../components/site-header';
 import { PeopleTable } from '../components/record-tables';
 import { relationships } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
@@ -16,7 +15,6 @@ export default async function PeoplePage() {
   const nameLabel = say(lang, 'Name', '名字');
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <h1>{say(lang, 'People', '玩家')}</h1>
         <PeopleTable title={say(lang, 'Friend requests', '好友请求')} rows={lists.incoming} empty={empty} nameLabel={nameLabel} lang={lang} />

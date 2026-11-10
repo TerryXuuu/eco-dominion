@@ -1,5 +1,7 @@
+import { provisionActor, readActor } from '@/lib/actor-cache';
+import { currentIdentity } from '@/lib/api';
 import { auth, authConfigured, toIdentity } from '@/lib/auth';
-import { withTransaction } from '@/lib/db';
+import { withClient, withTransaction } from '@/lib/db';
 import { privateJson } from '@/lib/http';
 import { sameOrigin } from '@/lib/profile-policy';
 import { provisionUser } from '@/lib/profile-service';
@@ -9,6 +11,8 @@ export const runtime = 'nodejs';
 
 const TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_BYTES = 1_500_000;
+const AVATAR_TTL_MS = 5 * 60_000;
+const ownAvatar = new Map<string, { at: number; mime: string; bytes: Uint8Array } | { at: number; missing: true }>();
 
 async function owner() {
   if (!authConfigured) return null;
@@ -18,16 +22,31 @@ async function owner() {
 }
 
 export async function GET() {
-  const identity = await owner();
+  let identity;
+  try {
+    identity = await currentIdentity();
+  } catch {
+    return privateJson({ error: 'Unauthorized' }, 401);
+  }
   if (!identity) return privateJson({ error: 'Unauthorized' }, 401);
-  const row = await withTransaction(async (client) => {
-    const user = await provisionUser(client, identity);
-    const found = await client.query(`SELECT mime, bytes FROM profile_avatar WHERE user_id = $1`, [user.user_id]);
+  const remembered = ownAvatar.get(identity.subject);
+  if (remembered && Date.now() - remembered.at < AVATAR_TTL_MS) {
+    if ('missing' in remembered) return new Response(null, { status: 404 });
+    return new Response(new Uint8Array(remembered.bytes), { headers: { 'content-type': remembered.mime, 'cache-control': 'private, max-age=300' } });
+  }
+  const row = await withClient(async (client) => {
+    const actor = readActor(identity) ?? await provisionActor(client, identity);
+    const found = await client.query(`SELECT mime, bytes FROM profile_avatar WHERE user_id = $1`, [actor.userId]);
     return found.rows[0] ?? null;
   });
-  if (!row) return new Response(null, { status: 404 });
+  if (!row) {
+    ownAvatar.set(identity.subject, { at: Date.now(), missing: true });
+    return new Response(null, { status: 404 });
+  }
   const bytes = row.bytes as Uint8Array;
-  return new Response(new Uint8Array(bytes), { headers: { 'content-type': String(row.mime), 'cache-control': 'private, max-age=60' } });
+  const mime = String(row.mime);
+  ownAvatar.set(identity.subject, { at: Date.now(), mime, bytes });
+  return new Response(new Uint8Array(bytes), { headers: { 'content-type': mime, 'cache-control': 'private, max-age=300' } });
 }
 
 export async function POST(request: Request) {
@@ -48,6 +67,7 @@ export async function POST(request: Request) {
       [user.user_id, file.type, bytes],
     );
     await client.query(`UPDATE profile SET avatar_key = 'local' WHERE user_id = $1`, [user.user_id]);
+    ownAvatar.delete(identity.subject);
   });
   return privateJson({ ok: true }, 200);
 }

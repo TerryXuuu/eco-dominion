@@ -1,4 +1,3 @@
-import { SiteHeader } from '../components/site-header';
 import { APPROVAL, CORRECTED_ENERGY_EXAMPLE, RULINGS, RULESET_ID } from '@/lib/rulings';
 import { playGuide } from '@/lib/play-guide';
 import { getLang } from '@/lib/lang';
@@ -14,7 +13,6 @@ export default async function RulesPage() {
   const guide = playGuide(lang);
   return (
     <>
-      <SiteHeader />
       <main className="shell">
         <section className="hero">
           <h1>{say(lang, 'How to play', '规则')}</h1>

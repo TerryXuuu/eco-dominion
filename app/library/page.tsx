@@ -1,4 +1,3 @@
-import { SiteHeader } from '../components/site-header';
 import { CATALOG } from '@/lib/cards';
 import { CARD_GUIDE } from '@/lib/card-guide';
 import { Library, type LibraryCard } from './library-client';
@@ -25,7 +24,6 @@ export default async function LibraryPage() {
   }));
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <section className="hero compact">
           <h1>{text.title}</h1>

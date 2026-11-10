@@ -1,4 +1,3 @@
-import { SiteHeader } from '../components/site-header';
 import { notifications } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
 import { MarkRead } from './inbox-client';
@@ -41,7 +40,6 @@ export default async function NotificationsPage() {
   const inbox = data.body;
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <h1>{say(lang, 'Notifications', '通知')}</h1>
         <p className="note">{say(lang, `${inbox.unread} unread`, `${inbox.unread} 条未读`)}</p>

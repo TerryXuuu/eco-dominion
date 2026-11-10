@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export function GET(request: Request) {
-  return actorRoute(request, (client, userId) => queueStatus(client, userId, Date.now()), { mutation: false });
+  return actorRoute(request, (client, userId) => queueStatus(client, userId, Date.now()), { mutation: false, transaction: true });
 }
 
 export function POST(request: Request) {

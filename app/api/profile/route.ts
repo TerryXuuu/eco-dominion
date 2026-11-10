@@ -1,5 +1,6 @@
+import { currentIdentity } from '@/lib/api';
 import { auth, authConfigured, toIdentity } from '@/lib/auth';
-import { withTransaction } from '@/lib/db';
+import { withClient, withTransaction } from '@/lib/db';
 import { privateJson } from '@/lib/http';
 import { sameOrigin } from '@/lib/profile-policy';
 import { getOwnProfile, updateOwnProfile } from '@/lib/profile-service';
@@ -8,11 +9,10 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET() {
-  if (!authConfigured) return privateJson({ error: 'Unauthorized' }, 401);
   try {
-    const { data } = await auth.getSession();
-    if (!data?.user?.email) return privateJson({ error: 'Unauthorized' }, 401);
-    const result = await withTransaction((client) => getOwnProfile(client, toIdentity(data.user)));
+    const identity = await currentIdentity();
+    if (!identity) return privateJson({ error: 'Unauthorized' }, 401);
+    const result = await withClient((client) => getOwnProfile(client, identity));
     return privateJson(result.body, result.status);
   } catch {
     return privateJson({ error: 'Unauthorized' }, 401);

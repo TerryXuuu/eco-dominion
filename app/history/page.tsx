@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { SiteHeader } from '../components/site-header';
 import { HistoryTable } from '../components/record-tables';
 import { history } from '@/lib/match-service';
 import { pageActor } from '@/lib/page-actor';
@@ -24,7 +23,6 @@ export default async function HistoryPage() {
   }));
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <h1>{text.title}</h1>
         {matches.length === 0 && <p className="note">{text.empty} <Link href="/play">{text.play}</Link>.</p>}

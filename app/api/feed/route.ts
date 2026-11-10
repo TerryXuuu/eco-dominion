@@ -1,7 +1,7 @@
 import { actorRoute, AuthUnavailableError, currentIdentity } from '@/lib/api';
 import { PUBLIC_READER } from '@/lib/access';
 import { feed } from '@/lib/community-service';
-import { withTransaction } from '@/lib/db';
+import { withClient } from '@/lib/db';
 import { privateJson } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     throw error;
   }
   if (!identity) {
-    const result = await withTransaction((client) => feed(client, PUBLIC_READER, { cursor: query.cursor, limit: query.limit, q: query.q }));
+    const result = await withClient((client) => feed(client, PUBLIC_READER, { cursor: query.cursor, limit: query.limit, q: query.q }));
     return privateJson(result.body, result.status);
   }
   return actorRoute(request, (client, userId) => feed(client, userId, query), { mutation: false });

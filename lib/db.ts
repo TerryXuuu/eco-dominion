@@ -9,7 +9,12 @@ let pool: Pool | null = null;
 function getPool() {
   const { databaseUrl } = runtimeEnv();
   if (!databaseUrl) throw new Error('Missing DATABASE_URL');
-  if (!pool) pool = new Pool({ connectionString: databaseUrl, max: 5 });
+  if (!pool) {
+    pool = new Pool({ connectionString: databaseUrl, max: 5, idleTimeoutMillis: 120_000, connectionTimeoutMillis: 20_000 });
+    pool.query('SELECT 1').catch(() => {
+      /* The first real request still connects if this warmup misses. */
+    });
+  }
   return pool;
 }
 

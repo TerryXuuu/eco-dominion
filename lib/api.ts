@@ -1,11 +1,11 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { auth, authConfigured, toIdentity } from './auth';
-import { withTransaction } from './db';
+import { notePresence, provisionActor, readActor } from './actor-cache';
+import { withClient, withTransaction } from './db';
 import { privateJson } from './http';
 import { accountGate, sameOrigin } from './profile-policy';
-import { provisionUser, type AuthIdentity, type Queryable } from './profile-service';
-import { touchPresence } from './presence';
+import type { AuthIdentity, Queryable } from './profile-service';
 
 type Handler = (client: Queryable, userId: string) => Promise<{ status: number; body: unknown }>;
 
@@ -63,8 +63,11 @@ export function forgetSession(token: string) {
   if (token) remembered.delete(token);
 }
 
-/** Authenticates, maps the provider subject to app_user and runs the handler inside one request-scoped transaction. */
-export async function actorRoute(request: Request, handler: Handler, options: { mutation: boolean }) {
+/**
+ * Authenticates and runs the handler. Reads borrow one connection. Writes stay in one transaction.
+ * Pass transaction: true for a read that still locks or writes, such as the queue and a live match.
+ */
+export async function actorRoute(request: Request, handler: Handler, options: { mutation: boolean; transaction?: boolean }) {
   if (options.mutation && !sameOrigin(request)) return privateJson({ error: 'Forbidden' }, 403);
   let identity: AuthIdentity | null;
   try {
@@ -74,13 +77,16 @@ export async function actorRoute(request: Request, handler: Handler, options: { 
     throw error;
   }
   if (!identity) return privateJson({ error: 'Unauthorized' }, 401);
+  const signedIn = identity;
+  const transactional = options.transaction ?? options.mutation;
   try {
-    const result = await withTransaction(async (client) => {
-      const user = await provisionUser(client, identity);
-      const gate = accountGate(user.status, options.mutation);
+    const run = transactional ? withTransaction : withClient;
+    const result = await run(async (client) => {
+      const actor = readActor(signedIn) ?? await provisionActor(client, signedIn);
+      const gate = accountGate(actor.status, options.mutation);
       if (!gate.ok) return { status: 403, body: { error: gate.error } };
-      await touchPresence(client, user.user_id);
-      return handler(client, user.user_id);
+      await notePresence(client, actor.userId);
+      return handler(client, actor.userId);
     });
     return privateJson(result.body, result.status);
   } catch (error) {

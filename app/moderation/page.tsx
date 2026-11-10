@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { SiteHeader } from '../components/site-header';
 import { auditTrail, isModerator, moderationQueue } from '@/lib/community-service';
 import { pageActor } from '@/lib/page-actor';
 import { Queue } from './moderation-client';
@@ -10,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function ModerationPage() {
-  const [{ email, data }, lang] = await Promise.all([pageActor(async (client, userId) => {
+  const [{ data }, lang] = await Promise.all([pageActor(async (client, userId) => {
     if (!(await isModerator(client, userId))) return null;
     const [queue, trail] = await Promise.all([moderationQueue(client, userId, {}), auditTrail(client, userId)]);
     if (queue.status !== 200 || trail.status !== 200) return null;
@@ -19,7 +18,6 @@ export default async function ModerationPage() {
   if (!data) notFound();
   return (
     <>
-      <SiteHeader email={email} />
       <main className="shell stack">
         <h1>{say(lang, 'Moderation', '审核')}</h1>
         <p className="note">{say(lang, 'This queue is for reported posts, comments and players. Hide or restore content, suspend or restore the reported account, and close the report. Accounts, role grants, ladder ratings and match records are on the admin console.', '这个队列处理被举报的帖子、评论和玩家。可以隐藏或恢复内容，封禁或恢复被举报的账号，并关闭举报。账号、角色、天梯分和对局记录在管理后台。')}</p>

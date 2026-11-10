@@ -30,7 +30,12 @@ export type HomeDashboard = {
   hasAvatar: boolean;
 };
 
+const DASHBOARD_TTL_MS = 20_000;
+const dashboards = new Map<string, { at: number; data: HomeDashboard }>();
+
 export async function homeDashboard(client: Queryable, userId: string): Promise<HomeDashboard> {
+  const hit = dashboards.get(userId);
+  if (hit && Date.now() - hit.at < DASHBOARD_TTL_MS) return hit.data;
   const profile = await client.query(
     `SELECT p.display_name, u.handle, p.avatar_key, p.peak_xp, p.ladder_score, p.ladder_peak,
             COALESCE((SELECT array_agg(role) FROM user_role r WHERE r.user_id = u.id), '{}') AS roles,
@@ -113,7 +118,7 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
     const week = weeks.find((item) => at >= item.start && at < item.end);
     if (week) week.games += 1;
   }
-  return {
+  const data = {
     displayName: String(row?.display_name ?? 'Player'),
     handle: String(row?.handle ?? ''),
     roles,
@@ -149,6 +154,8 @@ export async function homeDashboard(client: Queryable, userId: string): Promise<
     achievements: summary.achievements,
     hasAvatar: Boolean(row?.avatar_key),
   };
+  dashboards.set(userId, { at: Date.now(), data });
+  return data;
 }
 
 export type FriendHome = { home: HomeDashboard; hideRecord: boolean; hideAchievements: boolean; hideHotspot: boolean; hideActivity: boolean };

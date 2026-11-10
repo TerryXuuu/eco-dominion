@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { SiteHeader } from '../components/site-header';
 import { PUBLIC_READER, participationGate } from '@/lib/access';
 import { currentIdentity } from '@/lib/api';
 import { feed } from '@/lib/community-service';
-import { withTransaction } from '@/lib/db';
+import { withClient } from '@/lib/db';
 import { pageActor } from '@/lib/page-actor';
 import { Compose, Feed } from './community-client';
 import { copy } from '@/lib/i18n';
@@ -29,10 +28,9 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
   const text = copy(lang).community;
   const identity = await currentIdentity();
   if (!identity) {
-    const data = await withTransaction((client) => feed(client, PUBLIC_READER, { q }));
+    const data = await withClient((client) => feed(client, PUBLIC_READER, { q }));
     return (
       <>
-        <SiteHeader />
         <main className="shell stack">
           <section className="hero compact">
             <h1>{text.title}</h1>
@@ -54,7 +52,6 @@ export default async function CommunityPage({ searchParams }: { searchParams: Pr
   const canPost = data.canPost && !suspended;
   return (
     <>
-      <SiteHeader />
       <main className="shell stack">
         <section className="hero compact">
           <h1>{text.title}</h1>

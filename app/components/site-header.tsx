@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 import { AuthUnavailableError, currentIdentity } from '@/lib/api';
 import { withClient } from '@/lib/db';
 import { levelProgress, rankOf } from '@/lib/standing';
@@ -26,9 +27,9 @@ function rolesOf(raw: unknown) {
 
 type Viewer = { name: string; role: string; xp: number; ladderPeak: number; avatar: boolean };
 const viewers = new Map<string, { at: number; viewer: Viewer }>();
-const VIEWER_TTL_MS = 60_000;
+const VIEWER_TTL_MS = 3 * 60_000;
 
-async function signedInViewer() {
+const signedInViewer = cache(async () => {
   await cookies();
   try {
     const identity = await currentIdentity();
@@ -54,31 +55,31 @@ async function signedInViewer() {
     if (error instanceof AuthUnavailableError) return { paused: true, viewer: null };
     return { paused: true, viewer: null };
   }
-}
+});
 
 /** `email` is ignored. The header reads the session itself so a page cannot forget who is signed in. */
-export async function SiteHeader(_legacy?: { email?: string | null }) {
+export async function SiteHeader({ persistent = false }: { email?: string | null; persistent?: boolean } = {}) {
   const [{ paused, viewer }, lang, theme] = await Promise.all([signedInViewer(), getLang(), getTheme()]);
   const text = copy(lang);
   const rank = viewer ? rankOf(viewer.ladderPeak) : null;
   const level = viewer ? levelProgress(viewer.xp) : null;
   return (
-    <header className="shell topbar">
+    <header className={persistent ? 'shell topbar site-header' : 'shell topbar'}>
       <Link className="brand" href="/">
         <img className="brand-logo" src={logoUrl(theme, variantFor(lang))} alt="Eco Dominion" />
       </Link>
       <nav className="nav">
-        <Link href={viewer ? '/home' : '/'} prefetch={false}>{text.nav.home}</Link>
-        <Link href="/rules" prefetch={false}>{text.nav.rulings}</Link>
-        <Link href="/library" prefetch={false}>{text.nav.library}</Link>
-        <Link href="/leaderboard" prefetch={false}>{text.nav.leaderboard}</Link>
-        <Link href="/community" prefetch={false}>{text.nav.community}</Link>
-        {viewer && <Link href="/friends" prefetch={false}>{text.nav.friends}</Link>}
-        <Link href="/play" prefetch={false}>{text.nav.play}</Link>
-        <Link href="/history" prefetch={false}>{text.nav.history}</Link>
-        {viewer?.role === 'Moderator' || viewer?.role === 'Admin' ? <Link href="/moderation" prefetch={false}>{text.nav.moderation}</Link> : null}
-        {viewer?.role === 'Admin' && <Link href="/admin" prefetch={false}>{text.nav.admin}</Link>}
-        {viewer && <Link href="/settings" prefetch={false}>{text.nav.settings}</Link>}
+        <Link href={viewer ? '/home' : '/'}>{text.nav.home}</Link>
+        <Link href="/rules">{text.nav.rulings}</Link>
+        <Link href="/library">{text.nav.library}</Link>
+        <Link href="/leaderboard">{text.nav.leaderboard}</Link>
+        <Link href="/community">{text.nav.community}</Link>
+        {viewer && <Link href="/friends">{text.nav.friends}</Link>}
+        <Link href="/play">{text.nav.play}</Link>
+        <Link href="/history">{text.nav.history}</Link>
+        {viewer?.role === 'Moderator' || viewer?.role === 'Admin' ? <Link href="/moderation">{text.nav.moderation}</Link> : null}
+        {viewer?.role === 'Admin' && <Link href="/admin">{text.nav.admin}</Link>}
+        {viewer && <Link href="/settings">{text.nav.settings}</Link>}
         <ThemeSwitch theme={theme} />
         <LanguageSwitch lang={lang} />
         {viewer && rank ? (

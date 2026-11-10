@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { SiteHeader } from '../components/site-header';
 import { ProfileForm } from '../profile/profile-form';
 import { signOut } from '../profile/actions';
 import { GameSettings, PrivacySettings } from './settings-client';
@@ -25,7 +24,6 @@ export default async function SettingsPage() {
   const text = copy(lang);
   return (
     <>
-      <SiteHeader />
       <main className="shell stack settings-page">
         <h1>{text.settings.title}</h1>
         <ProfileForm lang={lang} profile={data} title={text.settings.profile} />

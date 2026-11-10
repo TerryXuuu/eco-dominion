@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { SiteHeader } from '../components/site-header';
 import { adminOverview } from '@/lib/admin-service';
 import { pageActor } from '@/lib/page-actor';
 import { siteCopy } from '../components/site-footer';
@@ -18,7 +17,6 @@ export default async function AdminPage() {
   if (!data) {
     return (
       <>
-        <SiteHeader email={email} />
         <main className="shell stack">
           <h1>{say(lang, 'Admin console', '管理后台')}</h1>
           <p className="note">{say(lang, `Signed in as ${email}. This account is not an admin, so the console stays closed. Log out, then sign in with an admin account.`, `当前登录为 ${email}。这个账号不是管理员，后台保持关闭。请退出后用管理员账号登录。`)}</p>
@@ -29,7 +27,6 @@ export default async function AdminPage() {
   }
   return (
     <>
-      <SiteHeader email={email} />
       <main className="shell wide stack">
         <h1>{say(lang, 'Admin console', '管理后台')}</h1>
         <p className="note">

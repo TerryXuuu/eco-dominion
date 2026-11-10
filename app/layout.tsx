@@ -3,6 +3,7 @@ import { Fraunces, Noto_Serif_SC } from 'next/font/google';
 import './globals.css';
 import { ArtProvider } from './components/art-context';
 import { SiteFooter } from './components/site-footer';
+import { SiteHeader } from './components/site-header';
 import { logoUrl, variantFor } from '@/lib/artwork';
 import { getLang } from '@/lib/lang';
 import { getTextFree } from '@/lib/card-face';
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={lang === 'zh' ? 'zh-CN' : 'en'} className={`${latin.variable} ${chinese.variable}`}>
       <body>
         <ArtProvider theme={theme} lang={lang} textFree={textFree}>
+          <SiteHeader persistent />
           {children}
           <SiteFooter />
         </ArtProvider>

@@ -1,4 +1,3 @@
-import { SiteHeader } from '../components/site-header';
 import { RegisterForm } from './register-form';
 import { getLang } from '@/lib/lang';
 
@@ -8,7 +7,6 @@ export default async function RegisterPage() {
   const lang = await getLang();
   return (
     <>
-      <SiteHeader />
       <RegisterForm lang={lang} />
     </>
   );
